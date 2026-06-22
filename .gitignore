@@ -40,6 +40,11 @@ backups/
 .pytest_cache/
 .dmypy.json
 
+# Coverage
+.coverage
+htmlcov/
+.tox/
+
 # Editors
 .vscode/
 .idea/
