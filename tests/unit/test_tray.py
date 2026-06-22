@@ -152,7 +152,7 @@ def test_tray_creates_menu_and_actions(tray) -> None:
     assert isinstance(tray_icon._menu, _FakeMenu)
     assert len(tray_icon._menu.actions) == 3
     assert tray_icon._toggle_action.text == "Start"
-    assert tray_icon._settings_action.enabled is False
+    assert tray_icon._settings_action.enabled is True
     assert tray_icon._exit_action.text == "Exit"
     assert app.is_running() is False
 
@@ -217,3 +217,23 @@ def test_tray_activation_trigger_toggles(tray) -> None:
     tray_icon._on_activated(_FakeActivationReason.Trigger)
 
     assert app.is_running() is True
+
+
+def test_tray_settings_action_shows_settings_window(tray) -> None:
+    """The Settings action should show and raise the settings window."""
+    tray_icon, _ = tray
+    fake_window = MagicMock()
+    tray_icon.settings_window = fake_window
+
+    tray_icon._on_settings()
+
+    fake_window.show.assert_called_once()
+    fake_window.raise_.assert_called_once()
+
+
+def test_tray_settings_action_without_window_is_safe(tray) -> None:
+    """The Settings action should be a no-op when no window is attached."""
+    tray_icon, _ = tray
+    tray_icon.settings_window = None
+
+    tray_icon._on_settings()

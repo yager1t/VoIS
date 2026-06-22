@@ -8,8 +8,8 @@ For day-to-day safety rules when editing or running commands, see [`docs/ai_work
 
 ## Current status
 
-The MVP is complete and working on Windows. Phase 1 (LLM post-processing) and Phase 2
-(system tray) of v0.2 are implemented. The critical path is implemented end-to-end:
+The MVP is complete and working on Windows. Phase 1 (LLM post-processing), Phase 2
+(system tray), and Phase 3 (settings window) of v0.2 are implemented. The critical path is implemented end-to-end:
 
 ```
 Global hotkey  →  Audio capture  →  VAD trim  →  ASR (faster-whisper)  →  Post-processing  →  Text injection
@@ -40,7 +40,8 @@ CLI entry point. Parses arguments, loads `Settings` from environment/`.env`, app
 Application orchestrator. Owns the hotkey manager, audio capture, buffer, VAD provider, ASR provider, and text injector. Implements both push-to-talk and toggle modes. Exposes optional callback attributes (`recording_started`, `recording_stopped`, `text_injected`) so the tray UI can react to pipeline events without making `App` depend on Qt.
 
 ### `src/ui/`
-- `tray.py` — `TrayIcon` is a `QSystemTrayIcon` with a context menu (Start/Stop toggle, disabled Settings placeholder, Exit) and a recording-state indicator. It wires the `App` callbacks to icon and balloon-notification updates.
+- `tray.py` — `TrayIcon` is a `QSystemTrayIcon` with a context menu (Start/Stop toggle, Settings, Exit) and a recording-state indicator. It wires the `App` callbacks to icon and balloon-notification updates.
+- `settings_window.py` — `SettingsWindow` is a `QWidget` form for editing hotkey, push-to-talk, ASR model, language, device, LLM options, and dry-run mode. On save it writes the current configuration back to the project `.env` file and emits `settings_saved`.
 
 ### `src/config.py`
 Pydantic-settings based configuration. Includes hotkey, audio, ASR, LLM post-processing, VAD, injection, and dry-run settings.
@@ -94,9 +95,9 @@ Completed:
 - [x] Unit test coverage > 90 %.
 - [x] LLM post-processing layer (Phase 1 of v0.2).
 - [x] System tray icon with PyQt6 (Phase 2 of v0.2).
+- [x] Settings window with PyQt6 (Phase 3 of v0.2).
 
 Planned:
-- [ ] Settings window (Phase 3 of v0.2).
 - [ ] Recording indicator polish and dictation notifications (Phase 4 of v0.2).
 - [ ] User dictionary and adaptive learning (v0.3).
 - [ ] Streaming ASR and latency optimization (v0.4).

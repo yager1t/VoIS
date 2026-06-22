@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import QApplication
 from src.app import App
 from src.config import Settings
 from src.logging_config import configure_logging, logger
+from src.ui.settings_window import SettingsWindow
 from src.ui.tray import TrayIcon
 
 
@@ -143,8 +144,20 @@ def main(argv: list[str] | None = None) -> int:
     qt_app.setQuitOnLastWindowClosed(False)
 
     app = App(settings)
-    tray = TrayIcon(app, settings)
+    settings_window = SettingsWindow(settings, env_file=env_file)
+    tray = TrayIcon(app, settings, settings_window=settings_window)
     tray.show()
+
+    def _on_settings_saved(new_settings: Settings) -> None:
+        """Update in-memory settings and advise the user about restart."""
+        app.settings = new_settings
+        tray.settings = new_settings
+        tray.show_message(
+            "Settings saved",
+            "Restart the application for hotkey and ASR model changes to take effect.",
+        )
+
+    settings_window.settings_saved.connect(_on_settings_saved)
 
     worker = _Worker(app)
     thread = QThread()

@@ -122,6 +122,7 @@ def main_mocks(tmp_path):
     mock_thread = MagicMock()
     mock_worker = MagicMock()
     mock_tray = MagicMock()
+    mock_settings_window = MagicMock()
 
     env_file = tmp_path / "custom.env"
     env_file.write_text("ASR_MODEL=small\n")
@@ -132,6 +133,9 @@ def main_mocks(tmp_path):
         patch("src.main.App", return_value=mock_app) as mock_app_cls,
         patch("src.main.QApplication", return_value=mock_qapp) as mock_qapp_cls,
         patch("src.main.TrayIcon", return_value=mock_tray) as mock_tray_cls,
+        patch(
+            "src.main.SettingsWindow", return_value=mock_settings_window
+        ) as mock_settings_window_cls,
         patch("src.main.QThread", return_value=mock_thread) as mock_qthread_cls,
         patch("src.main._Worker", return_value=mock_worker) as mock_worker_cls,
     ):
@@ -149,6 +153,8 @@ def main_mocks(tmp_path):
             "qapp_cls": mock_qapp_cls,
             "tray": mock_tray,
             "tray_cls": mock_tray_cls,
+            "settings_window": mock_settings_window,
+            "settings_window_cls": mock_settings_window_cls,
             "thread": mock_thread,
             "qthread_cls": mock_qthread_cls,
             "worker": mock_worker,
@@ -170,7 +176,12 @@ def test_main_loads_env_from_config(main_mocks) -> None:
 
     mocks["qapp_cls"].assert_called_once()
     mocks["app_cls"].assert_called_once_with(mocks["settings"])
-    mocks["tray_cls"].assert_called_once_with(mocks["app"], mocks["settings"])
+    mocks["settings_window_cls"].assert_called_once_with(
+        mocks["settings"], env_file=str(mocks["env_file"])
+    )
+    mocks["tray_cls"].assert_called_once_with(
+        mocks["app"], mocks["settings"], settings_window=mocks["settings_window"]
+    )
     mocks["tray"].show.assert_called_once()
     mocks["worker_cls"].assert_called_once_with(mocks["app"])
     mocks["qthread_cls"].assert_called_once()

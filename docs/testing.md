@@ -95,13 +95,13 @@ pytest tests/ -m requires_model --timeout=300
 
 ## Current coverage
 
-Coverage captured on 2026-06-22 after completing the system-tray implementation
-(Phase 2 of v0.2).
+Coverage captured on 2026-06-22 after completing the settings-window implementation
+(Phase 3 of v0.2).
 
 | Name                             | Stmts | Miss | Branch | BrPart | Cover |
 |----------------------------------|------:|-----:|-------:|-------:|------:|
 | `src\__init__.py`                |     1 |    0 |      0 |      0 |  100% |
-| `src\app.py`                     |   120 |    6 |     28 |      3 |   94% |
+| `src\app.py`                     |   121 |    6 |     28 |      3 |   94% |
 | `src\asr\__init__.py`            |     4 |    0 |      0 |      0 |  100% |
 | `src\asr\base.py`                |    20 |    0 |      0 |      0 |  100% |
 | `src\asr\model_manager.py`       |    38 |    4 |      8 |      0 |   91% |
@@ -118,18 +118,19 @@ Coverage captured on 2026-06-22 after completing the system-tray implementation
 | `src\injection\base.py`          |    10 |    0 |      0 |      0 |  100% |
 | `src\injection\windows.py`       |    69 |    5 |     22 |      6 |   88% |
 | `src\logging_config.py`          |    12 |    0 |      0 |      0 |  100% |
-| `src\main.py`                    |    68 |    3 |     14 |      1 |   95% |
+| `src\main.py`                    |    75 |    6 |     14 |      1 |   92% |
 | `src\postprocess\__init__.py`    |    10 |    0 |      2 |      0 |  100% |
 | `src\postprocess\base.py`        |     5 |    0 |      0 |      0 |  100% |
 | `src\postprocess\formatter.py`   |    13 |    0 |      4 |      0 |  100% |
 | `src\postprocess\llm_client.py`  |    27 |    0 |      0 |      0 |  100% |
-| `src\ui\__init__.py`             |     3 |    0 |      0 |      0 |  100% |
-| `src\ui\tray.py`                 |    64 |    5 |     16 |      5 |   88% |
-| **TOTAL**                        | **879**| **43**| **198**| **31**| **93%** |
+| `src\ui\__init__.py`             |     4 |    0 |      0 |      0 |  100% |
+| `src\ui\settings_window.py`      |    90 |    0 |      6 |      0 |  100% |
+| `src\ui\tray.py`                 |    69 |    5 |     18 |      5 |   89% |
+| **TOTAL**                        | **983**| **46**| **206**| **31**| **93%** |
 
-The overall code coverage is **93%** (92.57% precise), exceeding the configured `fail_under = 80`
-threshold. There are **142 unit tests**, **7 integration tests**, and **1 smoke
-test (150 total); the safe suites complete in under two seconds.
+The overall code coverage is **93%** (93.02% precise), exceeding the configured `fail_under = 80`
+threshold. There are **151 unit tests**, **7 integration tests**, and **1 smoke
+test (159 total); the safe suites complete in under two seconds.
 
 ## CI
 

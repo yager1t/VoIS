@@ -15,21 +15,29 @@ from PyQt6.QtWidgets import (
 if TYPE_CHECKING:  # pragma: no cover
     from src.app import App
     from src.config import Settings
+    from src.ui.settings_window import SettingsWindow
 
 
 class TrayIcon(QSystemTrayIcon):
     """System tray icon with context menu and recording indicator."""
 
-    def __init__(self, app: App, settings: Settings) -> None:
+    def __init__(
+        self,
+        app: App,
+        settings: Settings,
+        settings_window: SettingsWindow | None = None,
+    ) -> None:
         """Initialize tray icon and build context menu.
 
         Args:
             app: Application orchestrator.
             settings: Parsed application settings.
+            settings_window: Optional settings window shown by the Settings action.
         """
         super().__init__()
         self.app = app
         self.settings = settings
+        self.settings_window = settings_window
 
         self._base_icon = self._load_fallback_icon("base")
         self._recording_icon = self._load_fallback_icon("recording")
@@ -41,7 +49,7 @@ class TrayIcon(QSystemTrayIcon):
         self._menu.addAction(self._toggle_action)
 
         self._settings_action = QAction("Settings")
-        self._settings_action.setEnabled(False)
+        self._settings_action.triggered.connect(self._on_settings)
         self._menu.addAction(self._settings_action)
 
         self._exit_action = QAction("Exit")
@@ -93,6 +101,12 @@ class TrayIcon(QSystemTrayIcon):
             self._toggle_action.setText("Stop")
         else:
             self._toggle_action.setText("Start")
+
+    def _on_settings(self) -> None:
+        """Show the settings window when the Settings action is triggered."""
+        if self.settings_window is not None:
+            self.settings_window.show()
+            self.settings_window.raise_()
 
     def _on_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         """Handle tray activation (e.g. left click).
