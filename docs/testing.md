@@ -46,6 +46,17 @@ Alternatively use the convenience scripts:
 scripts\run_tests.bat
 ```
 
+## Running integration tests
+
+Integration tests exercise the composed audio pipeline and end-to-end
+application flow using mocked OS dependencies and synthetic audio fixtures.
+They are marked with `@pytest.mark.integration` and excluded from the default
+safe run:
+
+```bash
+pytest tests/integration -q --timeout=60
+```
+
 ## Running smoke tests
 
 Smoke tests require real hardware (microphone) and OS interaction (global
@@ -65,7 +76,7 @@ pytest tests/ -m requires_model --timeout=300
 
 ## Current coverage
 
-Coverage captured on 2026-06-22 after completing the unit-test expansion.
+Coverage captured on 2026-06-22 after completing the integration-test expansion.
 
 | Name                          | Stmts | Miss | Branch | BrPart | Cover |
 |-------------------------------|------:|-----:|-------:|-------:|------:|
@@ -91,4 +102,5 @@ Coverage captured on 2026-06-22 after completing the unit-test expansion.
 | **TOTAL**                     | **715**| **39**| **172**| **27**| **92%** |
 
 The overall unit-test coverage is **92%**, exceeding the configured `fail_under = 80`
-threshold. There are **112 unit tests** and they complete in under one second.
+threshold. There are **112 unit tests** and **7 integration tests**; combined
+they complete in under two seconds.
