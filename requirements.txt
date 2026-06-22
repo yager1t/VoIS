@@ -7,7 +7,7 @@ numpy>=1.24
 soundfile>=0.12
 
 # Voice activity detection (Windows-compatible wheel for webrtcvad)
-webrtcvad-wheels>=2.10
+webrtcvad-wheels>=2.0.10
 
 # ASR stack
 faster-whisper>=1.0
