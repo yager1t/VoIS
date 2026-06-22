@@ -86,3 +86,15 @@ def test_get_recent_seconds_invalid_arguments() -> None:
 
     assert buffer.get_recent_seconds(-1.0, SAMPLE_RATE).size == 0
     assert buffer.get_recent_seconds(1.0, 0).size == 0
+
+
+def test_max_seconds_discards_oldest_samples() -> None:
+    """A bounded buffer should keep only the most recent samples."""
+    buffer = AudioBuffer(max_seconds=1.0, sample_rate=10)
+
+    buffer.append(np.arange(8, dtype=np.float32))
+    buffer.append(np.arange(8, 15, dtype=np.float32))
+
+    result = buffer.get()
+    assert result.shape == (10,)
+    assert np.array_equal(result, np.arange(5, 15, dtype=np.float32))

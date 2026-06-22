@@ -84,6 +84,25 @@ def test_start_recording_clears_buffer_and_starts_capture(app: App) -> None:
     app._capture_mock.start.assert_called_once()
 
 
+def test_toggle_recording_starts_then_stops_and_transcribes(app: App) -> None:
+    """toggle_recording should start first, then stop/transcribe on next press."""
+    audio = np.ones(SAMPLE_RATE, dtype=np.float32)
+    app._capture_mock.is_recording.side_effect = [False, True]
+    app._buffer_mock.get.return_value = audio
+    app.vad.split_on_silence.return_value = [audio]
+    asr_mock = MagicMock()
+    asr_mock.transcribe.return_value.text = "toggle text"
+    app._asr = asr_mock
+
+    app.toggle_recording()
+    app.toggle_recording()
+
+    app._capture_mock.start.assert_called_once()
+    app._capture_mock.stop.assert_called_once()
+    asr_mock.transcribe.assert_called_once()
+    app._injector_mock.inject_with_delay.assert_called_once()
+
+
 def test_stop_recording_transcribes_and_injects(app: App, settings: Settings) -> None:
     """stop_recording should transcribe captured audio and inject the text."""
     audio = np.ones(SAMPLE_RATE, dtype=np.float32)
@@ -173,7 +192,6 @@ def test_start_loop_exits_after_stop(app: App) -> None:
             app.stop()
 
     app._shutdown_event.wait.side_effect = side_effect
-    app._running = True
 
     app.start()
 
@@ -205,3 +223,44 @@ def test_trim_silence_concatenates_segments() -> None:
 
     assert result.size == 150
     assert np.array_equal(result, np.concatenate([seg1, seg2], dtype=np.float32))
+
+
+def test_transcribe_audio_handles_empty_result(app: App) -> None:
+    """transcribe_audio should return an empty string when ASR yields no text."""
+    asr_mock = MagicMock()
+    asr_mock.transcribe.return_value.text = ""
+    app._asr = asr_mock
+
+    result = app.transcribe_audio(np.zeros(SAMPLE_RATE, dtype=np.float32))
+
+    assert result == ""
+    asr_mock.transcribe.assert_called_once()
+
+
+def test_inject_text_ignores_empty_string(app: App) -> None:
+    """inject_text should not call the injector for empty strings."""
+    app.inject_text("")
+
+    app._injector_mock.inject_with_delay.assert_not_called()
+
+
+def test_start_handles_already_running(app: App) -> None:
+    """start() should return cleanly when the app is already running."""
+    app._running = True
+
+    app.start()
+
+    app._hotkey_mock.start.assert_not_called()
+    assert app._running is True
+
+
+def test_stop_called_on_exception_in_start(app: App) -> None:
+    """stop() should be called when start() raises an unexpected exception."""
+    app._shutdown_event.wait.side_effect = RuntimeError("loop error")
+
+    with pytest.raises(RuntimeError, match="loop error"):
+        app.start()
+
+    app._hotkey_mock.stop.assert_called_once()
+    app._capture_mock.stop.assert_called_once()
+    assert app._running is False

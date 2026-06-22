@@ -15,6 +15,7 @@ def test_default_settings() -> None:
     assert settings.push_to_talk is True
     assert settings.audio_sample_rate == 16000
     assert settings.audio_channels == 1
+    assert settings.audio_max_record_seconds == 60.0
     assert settings.asr_model == "base"
     assert settings.asr_language == "auto"
     assert settings.llm_enabled is False
@@ -66,6 +67,46 @@ def test_env_file_loading(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> No
     settings = Settings(_env_file=str(env_file))
     assert settings.hotkey == "f12"
     assert settings.asr_model == "small"
+
+
+def test_vad_aggressiveness_loads_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """vad_aggressiveness should be configurable from environment."""
+    monkeypatch.setenv("VAD_AGGRESSIVENESS", "3")
+    settings = Settings()
+    assert settings.vad_aggressiveness == 3
+
+
+def test_injection_delay_ms_loads_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """injection_delay_ms should be configurable from environment."""
+    monkeypatch.setenv("INJECTION_DELAY_MS", "150")
+    settings = Settings()
+    assert settings.injection_delay_ms == 150.0
+
+
+def test_asr_device_and_compute_type_load_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """ASR device and compute type should be configurable from the environment."""
+    monkeypatch.setenv("ASR_DEVICE", "cuda")
+    monkeypatch.setenv("ASR_COMPUTE_TYPE", "float16")
+
+    settings = Settings()
+    assert settings.asr_device == "cuda"
+    assert settings.asr_compute_type == "float16"
+
+
+def test_new_fields_load_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Additional settings fields should load from environment variables."""
+    monkeypatch.setenv("DRY_RUN", "true")
+    monkeypatch.setenv("INJECTION_FALLBACK_TO_CLIPBOARD", "true")
+    monkeypatch.setenv("VAD_TRIM_SECONDS", "0.5")
+    monkeypatch.setenv("ASR_BEAM_SIZE", "3")
+    monkeypatch.setenv("AUDIO_MAX_RECORD_SECONDS", "30")
+
+    settings = Settings()
+    assert settings.dry_run is True
+    assert settings.injection_fallback_to_clipboard is True
+    assert settings.vad_trim_seconds == 0.5
+    assert settings.asr_beam_size == 3
+    assert settings.audio_max_record_seconds == 30.0
 
 
 def test_cwd_independent_import() -> None:

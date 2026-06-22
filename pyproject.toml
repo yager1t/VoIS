@@ -54,11 +54,14 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = "-q"
+addopts = "-q --strict-markers -m 'not smoke and not integration and not slow and not requires_model'"
+timeout = 60
+timeout_method = "thread"
 markers = [
     "slow: marks tests as slow",
     "smoke: marks tests requiring real hardware or OS interaction",
     "integration: marks tests as integration tests",
+    "requires_model: marks tests that load or download real ASR models",
 ]
 
 [tool.coverage.run]

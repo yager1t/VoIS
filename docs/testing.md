@@ -8,7 +8,7 @@ This project uses [pytest](https://docs.pytest.org/) for unit tests and
 From the repository root:
 
 ```bash
-pytest tests/
+pytest tests/ -m "not smoke and not integration and not slow and not requires_model" --timeout=60
 ```
 
 For a quieter output:
@@ -16,6 +16,11 @@ For a quieter output:
 ```bash
 pytest tests/ -q
 ```
+
+Do not use raw `pytest tests/` for normal AI-assisted development. The default
+safe run excludes smoke, integration, slow, and real-model tests so it cannot
+open microphone hooks, inject text, download ASR models, or leave long-running
+Python workers.
 
 ## Running with coverage
 
@@ -45,10 +50,17 @@ scripts\run_tests.bat
 
 Smoke tests require real hardware (microphone) and OS interaction (global
 hotkeys, text injection). They are not run as part of the default unit test
-suite. To run them explicitly once supported:
+suite. To run them explicitly once supported and approved:
 
 ```bash
 pytest tests/ -m smoke
+```
+
+Real ASR model tests must be marked `requires_model` and run only when explicitly
+needed:
+
+```bash
+pytest tests/ -m requires_model --timeout=300
 ```
 
 ## Baseline coverage

@@ -141,3 +141,70 @@ def test_load_model_caches_model(settings: Settings) -> None:
         provider.load_model()
 
     mock_load.assert_called_once()
+
+
+def test_load_model_calls_model_manager_with_correct_args(settings: Settings) -> None:
+    """load_model should delegate to ModelManager with settings-derived arguments."""
+    provider = FasterWhisperProvider(settings)
+
+    with patch.object(
+        provider._model_manager,
+        "load_whisper_model",
+        return_value=MagicMock(),
+    ) as mock_load:
+        provider.load_model()
+
+    mock_load.assert_called_once_with(
+        settings.asr_model,
+        device=settings.asr_device,
+        compute_type=settings.asr_compute_type,
+    )
+
+
+def test_transcribe_cleans_up_temp_wav(settings: Settings) -> None:
+    """Transcribe should remove the temporary WAV file after transcription."""
+    provider = FasterWhisperProvider(settings)
+    model = MagicMock()
+    model.transcribe.return_value = ([_FakeSegment("hello", -0.1)], _FakeInfo("en"))
+
+    written_path = None
+    original_write = __import__("soundfile").write
+
+    def capture_write(path, *args, **kwargs):
+        nonlocal written_path
+        written_path = Path(path)
+        original_write(path, *args, **kwargs)
+
+    with (
+        patch.object(provider, "_model", model),
+        patch("soundfile.write", side_effect=capture_write),
+    ):
+        provider.transcribe(np.zeros(SAMPLE_RATE, dtype=np.float32), SAMPLE_RATE)
+
+    assert written_path is not None
+    assert not written_path.exists()
+
+
+def test_transcribe_handles_exception_and_cleans_up(settings: Settings) -> None:
+    """Transcribe should propagate exceptions and still remove the temp file."""
+    provider = FasterWhisperProvider(settings)
+    model = MagicMock()
+    model.transcribe.side_effect = RuntimeError("transcription failed")
+
+    written_path = None
+    original_write = __import__("soundfile").write
+
+    def capture_write(path, *args, **kwargs):
+        nonlocal written_path
+        written_path = Path(path)
+        original_write(path, *args, **kwargs)
+
+    with (
+        patch.object(provider, "_model", model),
+        patch("soundfile.write", side_effect=capture_write),
+        pytest.raises(RuntimeError, match="transcription failed"),
+    ):
+        provider.transcribe(np.zeros(SAMPLE_RATE, dtype=np.float32), SAMPLE_RATE)
+
+    assert written_path is not None
+    assert not written_path.exists()

@@ -1,164 +1,110 @@
-# 🧠 AI Development Rules — Versioned, Backups & AI-Safe Workflow
+# AI Development Rules
 
-## 🎯 Purpose
-This document defines strict rules for developing software using AI assistants, ensuring:
-- version control
-- safe AI modifications
-- backups and rollback
-- reproducibility
-- prevention of destructive changes
+These rules apply to every AI-assisted change in this repository. Also read
+`docs/ai_working_guide.md` before running commands or editing code.
 
----
+## Core principle
 
-## 📌 1. Core Principle
+Every change must be:
 
-Any change in the system must be:
-- reversible
-- versioned
-- traceable
-- tested
-- documented
+- reversible;
+- versioned;
+- traceable;
+- tested at the right scope;
+- documented when behavior or workflow changes.
 
----
+## Versioning and change records
 
-## 🔁 2. Versioning Rules
+Use semantic versioning:
 
-### 2.1 Semantic Versioning
-MAJOR.MINOR.PATCH
+- MAJOR for breaking changes;
+- MINOR for new features;
+- PATCH for fixes.
 
-- MAJOR → breaking changes
-- MINOR → new features
-- PATCH → bug fixes
+Every AI-generated change should include an AI change id when committed or
+documented:
 
----
-
-### 2.2 AI Change ID
-
-Every AI-generated change must include:
-
-ai-change-id:
+```text
 YYYYMMDD-model-hash
+```
 
 Example:
-20260622-codex-8f3a21
 
----
+```text
+20260622-kimi-8f3a21
+```
 
-### 2.3 Commit Rules
+Commit messages should use this shape:
 
-Format:
+```text
+[feat/fix/refactor/test/docs] short description
 
-[feat/fix/refactor] short description
+AI: yes/no
+Model: codex / kimi / gpt / local-llm
+Change-ID: xxx
+```
 
-AI: yes/no  
-Model: codex / gpt / local-llm  
-Change-ID: xxx  
+## Backup and rollback
 
----
+Before large AI modifications:
 
-## 💾 3. Backup Rules
+1. Make sure the current git state is understood.
+2. Prefer a git commit or a clearly named backup archive.
+3. Keep rollback possible within a few minutes.
 
-### 3.1 Mandatory backup BEFORE AI changes
+Do not delete files, reset history, or rewrite architecture without explicit
+user approval.
 
-Before applying any AI modification:
+## Safe command policy
 
-1. Create git commit
-2. Create snapshot archive
-3. Save pre-change state
+Default test commands must be safe for a Windows desktop machine:
 
----
+```bash
+python -m pytest tests/ -m "not smoke and not integration and not slow and not requires_model" --timeout=60
+```
 
-### 3.2 Backup structure
+Do not run raw `pytest tests/` during AI work. Do not start multiple full test
+runs in parallel.
 
-/backups/YYYY-MM-DD/
-    pre_change.zip
-    post_change.zip
+Never run commands that can open real microphone capture, global keyboard hooks,
+text injection, model downloads, or real ASR model loading unless the user
+explicitly asks for that kind of test.
 
----
+If a test or tool command times out, inspect for surviving `python.exe`
+processes before retrying.
 
-## 🧠 4. AI Execution Modes
+## ASR-specific restrictions
 
-### 4.1 EXPLAIN MODE
-No code changes allowed
+Unit tests must not instantiate `faster_whisper.WhisperModel` or download
+Whisper models. Patch these wrappers instead:
 
-### 4.2 PROPOSE MODE
-Generates diff only
+- `src.asr.model_manager._download_model`
+- `src.asr.model_manager._create_whisper_model`
 
-### 4.3 APPLY MODE
-Applies changes only after approval
+Any real model test must be marked `requires_model` and excluded from the
+default test run.
 
----
+## Validation pipeline
 
-## ⚠️ 5. AI Restrictions
+Use the smallest useful validation set first:
 
-AI must NOT:
-- delete files without confirmation
-- rewrite architecture without explanation
-- change APIs without version bump
-- overwrite modules completely
+1. focused unit tests for changed modules;
+2. `ruff check` for changed code or `src tests`;
+3. `mypy src` when public types or module contracts changed;
+4. smoke tests only with explicit approval.
 
----
+## AI change log
 
-## 🧪 6. Validation Pipeline
+For substantial changes, create or update an entry under:
 
-Every change must pass:
+```text
+ai-changes/YYYY-MM-DD-change-N.md
+```
 
-1. Lint
-2. Type check
-3. Unit tests
-4. Smoke test
+Include:
 
----
-
-## 🔄 7. Rollback System
-
-If failure occurs:
-
-- git revert preferred
-- restore from /backups/ if needed
-
-Rollback must take < 2 minutes
-
----
-
-## 🧠 8. AI Memory Rules
-
-AI must always consider:
-- existing architecture
-- previous commits
-- dictionary of project terms
-- constraints (latency, structure, APIs)
-
----
-
-## 📁 9. Project Structure
-
-/src
-/tests
-/backups
-/docs
-/ai-changes
-
----
-
-## 🧩 10. AI Change Log
-
-Every AI modification must create:
-
-/ai-changes/YYYY-MM-DD-change-N.md
-
-Containing:
-- reason
-- diff
-- risk
-- rollback plan
-
----
-
-## 🚀 11. Stability Rule
-
-System must always be recoverable to last stable state in < 2 minutes.
-
----
-
-## 🏁 END
+- reason;
+- changed files;
+- validation run;
+- risk;
+- rollback plan.

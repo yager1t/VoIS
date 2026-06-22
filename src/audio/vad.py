@@ -71,23 +71,28 @@ class VADProvider(ABC):
 
         segments: list[np.ndarray] = []
         current: list[np.ndarray] = []
+        trailing_silence: list[np.ndarray] = []
         silence_streak = 0
 
         for frame, is_speech in zip(frames, decisions, strict=True):
             if is_speech:
-                # prepend trailing silence frames as context
-                for _ in range(min(silence_streak, keep_chunks)):
-                    current.append(frame)
+                if not current and trailing_silence:
+                    current.extend(trailing_silence[-keep_chunks:])
                 current.append(frame)
+                trailing_silence.clear()
                 silence_streak = 0
             else:
                 silence_streak += 1
+                trailing_silence.append(frame)
+                if len(trailing_silence) > keep_chunks:
+                    trailing_silence = trailing_silence[-keep_chunks:]
                 if current:
                     if silence_streak <= keep_chunks:
                         current.append(frame)
                     else:
                         segments.append(np.concatenate(current, dtype=np.float32))
                         current = []
+                        trailing_silence = trailing_silence[-keep_chunks:]
 
         if current:
             segments.append(np.concatenate(current, dtype=np.float32))

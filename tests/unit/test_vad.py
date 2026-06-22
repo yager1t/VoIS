@@ -113,6 +113,88 @@ def test_process_stream_pairs(mock_webrtcvad: MagicMock) -> None:
     assert result[2][1] is True
 
 
+def test_split_on_silence_different_trim_seconds() -> None:
+    """split_on_silence should keep context according to keep_chunks."""
+
+    class KeepAllVAD(VADProvider):
+        def is_speech(self, audio: np.ndarray, sample_rate: int) -> bool:
+            return True
+
+        def process_stream(
+            self,
+            chunks: list[np.ndarray],
+            sample_rate: int,
+        ) -> list[tuple[np.ndarray, bool]]:
+            return [(chunk, True) for chunk in chunks]
+
+    frame_size = int(SAMPLE_RATE * 0.03)
+    audio = np.arange(frame_size * 5, dtype=np.float32)
+    vad = KeepAllVAD()
+
+    segments = vad.split_on_silence(audio, SAMPLE_RATE, frame_ms=30, keep_chunks=1)
+    assert len(segments) == 1
+    assert segments[0].size == frame_size * 5
+
+
+def test_split_on_silence_keeps_actual_context_frames() -> None:
+    """Context around speech should use neighboring silence, not duplicate speech."""
+
+    class PatternVAD(VADProvider):
+        def __init__(self) -> None:
+            self._decisions = iter([False, True, False])
+
+        def is_speech(self, audio: np.ndarray, sample_rate: int) -> bool:
+            return next(self._decisions)
+
+        def process_stream(
+            self,
+            chunks: list[np.ndarray],
+            sample_rate: int,
+        ) -> list[tuple[np.ndarray, bool]]:
+            return [(chunk, True) for chunk in chunks]
+
+    frame_size = int(SAMPLE_RATE * 0.03)
+    silence_before = np.full(frame_size, 1, dtype=np.float32)
+    speech = np.full(frame_size, 2, dtype=np.float32)
+    silence_after = np.full(frame_size, 3, dtype=np.float32)
+    audio = np.concatenate([silence_before, speech, silence_after])
+
+    segments = PatternVAD().split_on_silence(audio, SAMPLE_RATE, frame_ms=30, keep_chunks=1)
+
+    assert len(segments) == 1
+    assert np.array_equal(segments[0], audio)
+
+
+def test_split_on_silence_short_audio() -> None:
+    """Audio shorter than one frame should produce no segments."""
+
+    class KeepAllVAD(VADProvider):
+        def is_speech(self, audio: np.ndarray, sample_rate: int) -> bool:
+            return True
+
+        def process_stream(
+            self,
+            chunks: list[np.ndarray],
+            sample_rate: int,
+        ) -> list[tuple[np.ndarray, bool]]:
+            return [(chunk, True) for chunk in chunks]
+
+    audio = np.zeros(10, dtype=np.float32)
+    vad = KeepAllVAD()
+    segments = vad.split_on_silence(audio, SAMPLE_RATE, frame_ms=30)
+    assert segments == []
+
+
+def test_is_speech_rejects_invalid_sample_rate(mock_webrtcvad: MagicMock) -> None:
+    """WebRTCVADProvider.is_speech should raise for unsupported sample rates."""
+    mock_instance = mock_webrtcvad.Vad.return_value
+    mock_instance.is_speech.side_effect = ValueError("invalid sample rate")
+
+    provider = WebRTCVADProvider()
+    with pytest.raises(ValueError, match="invalid sample rate"):
+        provider.is_speech(np.zeros(int(SAMPLE_RATE * 0.03), dtype=np.float32), 12345)
+
+
 @pytest.fixture
 def mock_webrtcvad() -> MagicMock:
     """Replace the webrtcvad module with a MagicMock for the test function."""

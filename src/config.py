@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     # Audio capture
     audio_sample_rate: int = 16000
     audio_channels: int = 1
+    audio_max_record_seconds: float = 60.0
 
     # ASR
     asr_model: str = "base"

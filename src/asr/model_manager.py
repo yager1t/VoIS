@@ -13,6 +13,36 @@ if TYPE_CHECKING:  # pragma: no cover
 from src.config import Settings
 
 
+def _download_model(model_name: str, output_dir: str) -> None:
+    """Download a faster-whisper model.
+
+    Kept as a small wrapper so unit tests can patch it without importing the
+    heavy ASR package or touching the network.
+    """
+    from faster_whisper import download_model
+
+    download_model(model_name, output_dir=output_dir)
+
+
+def _create_whisper_model(
+    model_name: str,
+    *,
+    device: str,
+    compute_type: str,
+    download_root: str,
+) -> WhisperModel:
+    """Create a faster-whisper model instance behind a patchable wrapper."""
+    from faster_whisper import WhisperModel
+
+    return WhisperModel(
+        model_name,
+        device=device,
+        compute_type=compute_type,
+        local_files_only=False,
+        download_root=download_root,
+    )
+
+
 class ModelManager:
     """Resolve and download faster-whisper model checkpoints.
 
@@ -77,9 +107,7 @@ class ModelManager:
 
         logger.info("Downloading model '{}' to {}", model_name, target)
         try:
-            from faster_whisper import download_model
-
-            download_model(model_name, output_dir=str(target))
+            _download_model(model_name, output_dir=str(target))
         except Exception as exc:  # pragma: no cover - network/model errors
             logger.exception("Failed to download model '{}': {}", model_name, exc)
             raise RuntimeError(f"Could not download model '{model_name}'") from exc
@@ -102,13 +130,10 @@ class ModelManager:
         Returns:
             Loaded ``WhisperModel`` instance.
         """
-        from faster_whisper import WhisperModel
-
         self.ensure_model(model_name)
-        return WhisperModel(
+        return _create_whisper_model(
             model_name,
             device=device or self.settings.asr_device,
             compute_type=compute_type or self.settings.asr_compute_type,
-            local_files_only=False,
             download_root=str(self._models_dir),
         )

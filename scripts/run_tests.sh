@@ -9,5 +9,5 @@ ruff check src tests
 echo "==> Type checking"
 mypy src
 
-echo "==> Running tests with coverage"
-pytest tests/ --cov=src --cov-report=term-missing --cov-report=html
+echo "==> Running safe unit tests with coverage"
+pytest tests/ -m "not smoke and not integration and not slow and not requires_model" --timeout=60 --cov=src --cov-report=term-missing --cov-report=html

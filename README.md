@@ -70,5 +70,9 @@ See [`docs/architecture.md`](docs/architecture.md) for a high-level overview.
 ```bash
 ruff check src tests
 mypy src
-pytest tests/ -q
+pytest tests/ -m "not smoke and not integration and not slow and not requires_model" --timeout=60
 ```
+
+AI assistants should read [`docs/ai_working_guide.md`](docs/ai_working_guide.md)
+before running commands or editing code. The guide documents the safe test
+commands and the rules for avoiding accidental real ASR model loads.

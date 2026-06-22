@@ -70,18 +70,23 @@ class App:
         self._running = False
         self._shutdown_event = threading.Event()
         self.capture = AudioCapture(settings)
-        self.buffer = AudioBuffer()
+        self.buffer = AudioBuffer(
+            max_seconds=settings.audio_max_record_seconds,
+            sample_rate=settings.audio_sample_rate,
+        )
         self.capture.set_callback(self.buffer.append)
         self.injector: TextInjector = create_text_injector()
         if isinstance(self.injector, WindowsTextInjector):
             self.injector.fallback_to_clipboard = settings.injection_fallback_to_clipboard
         self._asr: ASRProvider | None = None
         self.vad = self._create_vad()
+        on_press = self.start_recording if settings.push_to_talk else self.toggle_recording
+        on_release = self.stop_recording if settings.push_to_talk else None
         self.hotkey = create_hotkey_manager(
             settings.hotkey,
             push_to_talk=settings.push_to_talk,
-            on_press=self.start_recording,
-            on_release=self.stop_recording,
+            on_press=on_press,
+            on_release=on_release,
         )
         logger.debug("AudioCapture, VAD, and HotkeyManager initialized")
 
@@ -105,6 +110,10 @@ class App:
 
     def start(self) -> None:
         """Start the voice-to-cursor service."""
+        if self._running:
+            logger.debug("Voice-to-Cursor already running")
+            return
+
         self.settings.ensure_dirs()
         self._running = True
         self._shutdown_event.clear()
@@ -134,6 +143,13 @@ class App:
         logger.info("Start recording requested")
         self.buffer.clear()
         self.capture.start()
+
+    def toggle_recording(self) -> None:
+        """Toggle recording mode and transcribe when a recording is stopped."""
+        if self.capture.is_recording():
+            self.stop_recording()
+        else:
+            self.start_recording()
 
     def stop_recording(self) -> None:
         """Stop audio recording, transcribe, and inject the result."""
