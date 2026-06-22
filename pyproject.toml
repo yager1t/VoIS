@@ -1,6 +1,6 @@
 [project]
 name = "voice-to-cursor"
-version = "0.2.0"
+version = "0.3.0"
 description = "Local-first desktop app for AI-powered voice dictation at the cursor."
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -12,7 +12,10 @@ dependencies = [
     "sounddevice>=0.4",
     "numpy>=1.24",
     "soundfile>=0.12",
-    "webrtcvad>=2.0",
+    "webrtcvad-wheels>=2.10",
+    "faster-whisper>=1.0",
+    "torch>=2.0",
+    "huggingface-hub>=0.20",
 ]
 
 [project.optional-dependencies]

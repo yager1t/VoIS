@@ -1,7 +1,18 @@
+# Core dependencies
 pydantic-settings>=2.0
 loguru>=0.7
 pyyaml>=6.0
 sounddevice>=0.4
 numpy>=1.24
 soundfile>=0.12
-webrtcvad>=2.0
+
+# Voice activity detection (Windows-compatible wheel for webrtcvad)
+webrtcvad-wheels>=2.10
+
+# ASR stack
+faster-whisper>=1.0
+torch>=2.0
+huggingface-hub>=0.20
+
+# Install CPU-only torch to avoid large GPU downloads:
+# pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cpu

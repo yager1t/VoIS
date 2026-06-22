@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     # ASR
     asr_model: str = "base"
     asr_language: str = "auto"
+    asr_device: str = "cpu"
+    asr_compute_type: str = "int8"
+    asr_beam_size: int = 5
 
     # LLM post-processing
     llm_enabled: bool = False
