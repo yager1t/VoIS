@@ -1,6 +1,6 @@
 """Unit tests for the system tray icon."""
 
-# ruff: noqa: N802
+# ruff: noqa: N802, N815
 
 from __future__ import annotations
 
@@ -83,6 +83,23 @@ class _FakeApplication:
         pass
 
 
+class _FakeSignal:
+    """Records signal connections and emitted payloads."""
+
+    def __init__(self, *types: type) -> None:
+        self._types = types
+        self._slots: list[tuple[object, object]] = []
+        self._emitted: list[tuple[tuple[object, ...], dict[str, object]]] = []
+
+    def connect(self, slot: object, *, type: object = None) -> None:  # noqa: A002
+        self._slots.append((slot, type))
+
+    def emit(self, *args: object, **kwargs: object) -> None:
+        self._emitted.append((args, kwargs))
+        for slot, _ in self._slots:
+            slot(*args, **kwargs)
+
+
 class _FakeQtWidgetsModule:
     QSystemTrayIcon = _FakeSystemTrayIcon
     QMenu = _FakeMenu
@@ -96,7 +113,8 @@ class _FakeQtGuiModule:
 
 
 class _FakeQtCoreModule:
-    pass
+    pyqtSignal = _FakeSignal
+    Qt = MagicMock()
 
 
 class _FakeApp:
@@ -157,22 +175,34 @@ def test_tray_creates_menu_and_actions(tray) -> None:
     assert app.is_running() is False
 
 
-def test_tray_wires_app_callbacks(tray) -> None:
-    """TrayIcon should attach its UI handlers to App callback attributes."""
-    tray_icon, app = tray
-
-    assert app.recording_started is not None
-    assert app.recording_started.__func__ is tray_icon._on_recording_started.__func__
-    assert app.recording_stopped.__func__ is tray_icon._on_recording_stopped.__func__
-    assert app.text_injected.__func__ is tray_icon._on_text_injected.__func__
-
-
-def test_tray_show_message_delegates_to_show_message(tray) -> None:
-    """show_message should call the underlying QSystemTrayIcon.showMessage."""
+def test_tray_signals_connect_on_init(tray) -> None:
+    """TrayIcon should connect its signals to internal slots."""
     tray_icon, _ = tray
 
-    tray_icon.show_message("Title", "Body")
+    assert len(tray_icon.recording_state_changed._slots) == 1
+    assert len(tray_icon.show_notification._slots) == 1
 
+
+def test_tray_set_recording_emits_signal_and_changes_icon(tray) -> None:
+    """set_recording(True/False) should emit a signal and update the icon."""
+    tray_icon, _ = tray
+
+    tray_icon.set_recording(True)
+    assert tray_icon._icon == tray_icon._recording_icon
+    assert any(args == (True,) for args, _ in tray_icon.recording_state_changed._emitted)
+
+    tray_icon.set_recording(False)
+    assert tray_icon._icon == tray_icon._base_icon
+    assert any(args == (False,) for args, _ in tray_icon.recording_state_changed._emitted)
+
+
+def test_tray_notify_emits_signal_and_shows_message(tray) -> None:
+    """notify(title, message) should emit a signal that displays the message."""
+    tray_icon, _ = tray
+
+    tray_icon.notify("Title", "Body")
+
+    assert any(args == ("Title", "Body") for args, _ in tray_icon.show_notification._emitted)
     assert len(tray_icon._messages) == 1
     args, kwargs = tray_icon._messages[0]
     assert args == ("Title", "Body", _FakeMessageIcon.Information, 3000)
@@ -187,6 +217,18 @@ def test_tray_set_recording_icon_switches_icon(tray) -> None:
     assert tray_icon._icon == tray_icon._recording_icon
     tray_icon.set_recording_icon(False)
     assert tray_icon._icon == tray_icon._base_icon
+
+
+def test_tray_show_message_delegates_to_show_message(tray) -> None:
+    """show_message should call the underlying QSystemTrayIcon.showMessage."""
+    tray_icon, _ = tray
+
+    tray_icon.show_message("Title", "Body")
+
+    assert len(tray_icon._messages) == 1
+    args, kwargs = tray_icon._messages[0]
+    assert args == ("Title", "Body", _FakeMessageIcon.Information, 3000)
+    assert kwargs == {}
 
 
 def test_tray_toggle_starts_app_when_idle(tray) -> None:

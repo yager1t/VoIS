@@ -148,6 +148,27 @@ def main(argv: list[str] | None = None) -> int:
     tray = TrayIcon(app, settings, settings_window=settings_window)
     tray.show()
 
+    def _on_recording_started() -> None:
+        """Update tray indicator and notify when recording starts."""
+        tray.set_recording(True)
+        tray.notify("Recording", "Recording...")
+
+    def _on_recording_stopped() -> None:
+        """Restore idle tray indicator when recording stops."""
+        tray.set_recording(False)
+
+    def _on_text_injected(text: str) -> None:
+        """Notify when text was transcribed/injected after a recording."""
+        if settings.dry_run:
+            preview = text if len(text) <= 40 else f"{text[:40]}..."
+            tray.notify("Dictation", f"Transcribed: {preview}")
+        else:
+            tray.notify("Dictation", "Text injected")
+
+    app.recording_started = _on_recording_started
+    app.recording_stopped = _on_recording_stopped
+    app.text_injected = _on_text_injected
+
     def _on_settings_saved(new_settings: Settings) -> None:
         """Update in-memory settings and advise the user about restart."""
         app.settings = new_settings

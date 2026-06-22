@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtWidgets import (
     QApplication,
@@ -20,6 +21,9 @@ if TYPE_CHECKING:  # pragma: no cover
 
 class TrayIcon(QSystemTrayIcon):
     """System tray icon with context menu and recording indicator."""
+
+    recording_state_changed = pyqtSignal(bool)
+    show_notification = pyqtSignal(str, str)
 
     def __init__(
         self,
@@ -59,8 +63,10 @@ class TrayIcon(QSystemTrayIcon):
         self.setContextMenu(self._menu)
         self.activated.connect(self._on_activated)
 
+        self.recording_state_changed.connect(self._on_recording_changed)
+        self.show_notification.connect(self._on_show_notification)
+
         self._refresh_toggle()
-        self._wire_app_callbacks()
 
     def _load_fallback_icon(self, kind: str) -> QIcon:
         """Return a fallback QStyle icon.
@@ -78,14 +84,30 @@ class TrayIcon(QSystemTrayIcon):
             return style.standardIcon(QStyle.StandardPixmap.SP_DialogApplyButton)
         return style.standardIcon(QStyle.StandardPixmap.SP_ComputerIcon)
 
-    def _wire_app_callbacks(self) -> None:
-        """Connect App callbacks to tray indicator methods."""
-        if hasattr(self.app, "recording_started"):
-            self.app.recording_started = self._on_recording_started
-        if hasattr(self.app, "recording_stopped"):
-            self.app.recording_stopped = self._on_recording_stopped
-        if hasattr(self.app, "text_injected"):
-            self.app.text_injected = self._on_text_injected
+    def set_recording(self, recording: bool) -> None:
+        """Request a recording-state change (thread-safe signal emission).
+
+        Args:
+            recording: Whether recording is active.
+        """
+        self.recording_state_changed.emit(recording)
+
+    def notify(self, title: str, message: str) -> None:
+        """Request a tray notification (thread-safe signal emission).
+
+        Args:
+            title: Notification title.
+            message: Notification body.
+        """
+        self.show_notification.emit(title, message)
+
+    def _on_recording_changed(self, recording: bool) -> None:
+        """Update the tray icon to reflect recording state."""
+        self.set_recording_icon(recording)
+
+    def _on_show_notification(self, title: str, message: str) -> None:
+        """Display a balloon notification."""
+        self.show_message(title, message)
 
     def _on_toggle(self) -> None:
         """Toggle application start/stop."""
@@ -116,24 +138,6 @@ class TrayIcon(QSystemTrayIcon):
         """
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
             self._on_toggle()
-
-    def _on_recording_started(self) -> None:
-        """Handle recording started callback."""
-        self.set_recording_icon(True)
-        self.show_message("Recording", "Recording started")
-
-    def _on_recording_stopped(self) -> None:
-        """Handle recording stopped callback."""
-        self.set_recording_icon(False)
-        self.show_message("Recording", "Recording stopped")
-
-    def _on_text_injected(self, text: str) -> None:
-        """Handle text injected callback.
-
-        Args:
-            text: The text that was injected.
-        """
-        self.show_message("Dictation", text)
 
     def show_message(
         self,

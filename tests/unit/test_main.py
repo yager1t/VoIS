@@ -201,3 +201,40 @@ def test_main_quit_handler_stops_app_and_thread(main_mocks) -> None:
     mocks["app"].stop.assert_called_once()
     mocks["thread"].quit.assert_called_once()
     mocks["thread"].wait.assert_called_once_with(5000)
+
+
+def test_main_wires_recording_callbacks_to_tray(main_mocks) -> None:
+    """App recording callbacks should be wired to tray indicator methods."""
+    mocks = main_mocks
+
+    main(["--config", str(mocks["env_file"])])
+
+    assert mocks["app"].recording_started is not None
+    assert mocks["app"].recording_stopped is not None
+    assert mocks["app"].text_injected is not None
+
+    mocks["app"].recording_started()
+    mocks["tray"].set_recording.assert_called_once_with(True)
+    mocks["tray"].notify.assert_called_once_with("Recording", "Recording...")
+
+
+def test_main_wires_text_injected_in_dry_run(main_mocks) -> None:
+    """text_injected callback should show transcribed text in dry-run mode."""
+    mocks = main_mocks
+    mocks["settings"].dry_run = True
+
+    main(["--config", str(mocks["env_file"]), "--dry-run"])
+
+    mocks["app"].text_injected("hello world")
+    mocks["tray"].notify.assert_called_once_with("Dictation", "Transcribed: hello world")
+
+
+def test_main_wires_text_injected_in_normal_mode(main_mocks) -> None:
+    """text_injected callback should show a privacy-safe message in normal mode."""
+    mocks = main_mocks
+    mocks["settings"].dry_run = False
+
+    main(["--config", str(mocks["env_file"])])
+
+    mocks["app"].text_injected("hello world")
+    mocks["tray"].notify.assert_called_once_with("Dictation", "Text injected")

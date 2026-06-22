@@ -40,7 +40,7 @@ CLI entry point. Parses arguments, loads `Settings` from environment/`.env`, app
 Application orchestrator. Owns the hotkey manager, audio capture, buffer, VAD provider, ASR provider, and text injector. Implements both push-to-talk and toggle modes. Exposes optional callback attributes (`recording_started`, `recording_stopped`, `text_injected`) so the tray UI can react to pipeline events without making `App` depend on Qt.
 
 ### `src/ui/`
-- `tray.py` — `TrayIcon` is a `QSystemTrayIcon` with a context menu (Start/Stop toggle, Settings, Exit) and a recording-state indicator. It wires the `App` callbacks to icon and balloon-notification updates.
+- `tray.py` — `TrayIcon` is a `QSystemTrayIcon` with a context menu (Start/Stop toggle, Settings, Exit) and a recording-state indicator. It exposes thread-safe `set_recording(recording)` and `notify(title, message)` methods that emit Qt signals; the corresponding slots update the tray icon and show balloon notifications.
 - `settings_window.py` — `SettingsWindow` is a `QWidget` form for editing hotkey, push-to-talk, ASR model, language, device, LLM options, and dry-run mode. On save it writes the current configuration back to the project `.env` file and emits `settings_saved`.
 
 ### `src/config.py`
@@ -96,9 +96,9 @@ Completed:
 - [x] LLM post-processing layer (Phase 1 of v0.2).
 - [x] System tray icon with PyQt6 (Phase 2 of v0.2).
 - [x] Settings window with PyQt6 (Phase 3 of v0.2).
+- [x] Recording indicator and dictation notifications (Phase 4 of v0.2).
 
 Planned:
-- [ ] Recording indicator polish and dictation notifications (Phase 4 of v0.2).
 - [ ] User dictionary and adaptive learning (v0.3).
 - [ ] Streaming ASR and latency optimization (v0.4).
 - [ ] macOS and Linux support (v0.5).

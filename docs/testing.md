@@ -95,8 +95,8 @@ pytest tests/ -m requires_model --timeout=300
 
 ## Current coverage
 
-Coverage captured on 2026-06-22 after completing the settings-window implementation
-(Phase 3 of v0.2).
+Coverage captured on 2026-06-22 after completing the recording indicator and
+notifications implementation (Phase 4 of v0.2).
 
 | Name                             | Stmts | Miss | Branch | BrPart | Cover |
 |----------------------------------|------:|-----:|-------:|-------:|------:|
@@ -125,12 +125,12 @@ Coverage captured on 2026-06-22 after completing the settings-window implementat
 | `src\postprocess\llm_client.py`  |    27 |    0 |      0 |      0 |  100% |
 | `src\ui\__init__.py`             |     4 |    0 |      0 |      0 |  100% |
 | `src\ui\settings_window.py`      |    90 |    0 |      6 |      0 |  100% |
-| `src\ui\tray.py`                 |    69 |    5 |     18 |      5 |   89% |
-| **TOTAL**                        | **983**| **46**| **206**| **31**| **93%** |
+| `src\ui\tray.py`                 |    66 |    0 |     12 |      2 |   97% |
+| **TOTAL**                        | **993**| **42**| **202**| **28**| **94%** |
 
-The overall code coverage is **93%** (93.02% precise), exceeding the configured `fail_under = 80`
-threshold. There are **151 unit tests**, **7 integration tests**, and **1 smoke
-test (159 total); the safe suites complete in under two seconds.
+The overall code coverage is **94%** (93.64% precise), exceeding the configured `fail_under = 80`
+threshold. There are **155 unit tests**, **7 integration tests**, and **1 smoke
+test (163 total); the safe suites complete in under two seconds.
 
 ## CI
 
