@@ -3,7 +3,7 @@
 This document describes the current architecture of the Voice-to-Cursor AI Dictation System.
 
 For the original product brief, see [`voice_to_cursor_prompt.md`](../voice_to_cursor_prompt.md).  
-For the approved implementation plan, see [`C:\Users\Jury\.kimi\plans\thor-wonder-man-raven.md`](../.kimi/plans/thor-wonder-man-raven.md).  
+For the approved implementation plan, see [`C:\Users\Jury\.kimi\plans\aquaman-phantom-stranger-rictor.md`](file:///C:/Users/Jury/.kimi/plans/aquaman-phantom-stranger-rictor.md).  
 For day-to-day safety rules when editing or running commands, see [`docs/ai_working_guide.md`](ai_working_guide.md).
 
 ## Current status
