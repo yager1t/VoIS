@@ -8,13 +8,13 @@ This project uses [pytest](https://docs.pytest.org/) for unit tests and
 From the repository root:
 
 ```bash
-pytest tests/ -m "not smoke and not integration and not slow and not requires_model" --timeout=60
+pytest tests/unit -m "not smoke and not integration and not slow and not requires_model" --timeout=60
 ```
 
 For a quieter output:
 
 ```bash
-pytest tests/ -q
+pytest tests/unit -q
 ```
 
 Do not use raw `pytest tests/` for normal AI-assisted development. The default
@@ -24,16 +24,16 @@ Python workers.
 
 ## Running with coverage
 
-To run all tests and print a missing-line coverage report:
+To run unit tests and print a missing-line coverage report:
 
 ```bash
-pytest tests/ --cov=src --cov-report=term-missing
+pytest tests/unit -m "not smoke and not integration and not slow and not requires_model" --cov=src --cov-report=term-missing --timeout=60
 ```
 
 To also generate an HTML coverage report:
 
 ```bash
-pytest tests/ --cov=src --cov-report=term-missing --cov-report=html
+pytest tests/unit --cov=src --cov-report=term-missing --cov-report=html
 ```
 
 Alternatively use the convenience scripts:
@@ -63,33 +63,32 @@ needed:
 pytest tests/ -m requires_model --timeout=300
 ```
 
-## Baseline coverage
+## Current coverage
 
-Coverage was captured on 2026-06-22 after adding the test infrastructure.
+Coverage captured on 2026-06-22 after completing the unit-test expansion.
 
-| Module                        | Stmts | Miss | Branch | BrPart | Cover |
+| Name                          | Stmts | Miss | Branch | BrPart | Cover |
 |-------------------------------|------:|-----:|-------:|-------:|------:|
-| src\__init__.py               |     1 |    0 |      0 |      0 |  100% |
-| src\app.py                    |    96 |    8 |     20 |      4 |   90% |
-| src\asr\__init__.py           |     4 |    0 |      0 |      0 |  100% |
-| src\asr\base.py               |    20 |    0 |      0 |      0 |  100% |
-| src\asr\model_manager.py      |    34 |   12 |      8 |      0 |   67% |
-| src\asr\whisper_provider.py   |    47 |    0 |      8 |      1 |   98% |
-| src\audio\__init__.py         |     4 |    0 |      0 |      0 |  100% |
-| src\audio\buffer.py           |    38 |    3 |     10 |      3 |   88% |
-| src\audio\capture.py          |    77 |   59 |     20 |      0 |   19% |
-| src\audio\vad.py              |    53 |   20 |     16 |      0 |   54% |
-| src\config.py                 |    26 |    0 |      0 |      0 |  100% |
-| src\hotkey\__init__.py        |     9 |    0 |      0 |      0 |  100% |
-| src\hotkey\base.py            |    32 |    1 |      6 |      1 |   95% |
-| src\hotkey\windows.py         |    97 |   13 |     36 |      8 |   80% |
-| src\injection\__init__.py     |     9 |    0 |      0 |      0 |  100% |
-| src\injection\base.py         |    10 |    0 |      0 |      0 |  100% |
-| src\injection\windows.py      |    69 |    5 |     22 |      6 |   88% |
-| src\logging_config.py         |    12 |   12 |      0 |      0 |    0% |
-| src\main.py                   |    44 |   44 |     14 |      0 |    0% |
-| **TOTAL**                     | **682** | **177** | **160** | **23** | **70%** |
+| `src\__init__.py`             |     1 |    0 |      0 |      0 |  100% |
+| `src\app.py`                  |   105 |    6 |     24 |      3 |   93% |
+| `src\asr\__init__.py`         |     4 |    0 |      0 |      0 |  100% |
+| `src\asr\base.py`             |    20 |    0 |      0 |      0 |  100% |
+| `src\asr\model_manager.py`    |    38 |    4 |      8 |      0 |   91% |
+| `src\asr\whisper_provider.py` |    47 |    0 |      8 |      1 |   98% |
+| `src\audio\__init__.py`       |     4 |    0 |      0 |      0 |  100% |
+| `src\audio\buffer.py`         |    51 |    5 |     16 |      4 |   87% |
+| `src\audio\capture.py`        |    77 |    1 |     20 |      2 |   97% |
+| `src\audio\vad.py`            |    59 |    4 |     18 |      2 |   92% |
+| `src\config.py`               |    27 |    0 |      0 |      0 |  100% |
+| `src\hotkey\__init__.py`      |     9 |    0 |      0 |      0 |  100% |
+| `src\hotkey\base.py`          |    32 |    1 |      6 |      1 |   95% |
+| `src\hotkey\windows.py`       |    97 |   13 |     36 |      8 |   80% |
+| `src\injection\__init__.py`   |     9 |    0 |      0 |      0 |  100% |
+| `src\injection\base.py`       |    10 |    0 |      0 |      0 |  100% |
+| `src\injection\windows.py`    |    69 |    5 |     22 |      6 |   88% |
+| `src\logging_config.py`       |    12 |    0 |      0 |      0 |  100% |
+| `src\main.py`                 |    44 |    0 |     14 |      0 |  100% |
+| **TOTAL**                     | **715**| **39**| **172**| **27**| **92%** |
 
-The overall coverage is currently **70%**, which is below the configured
-`fail_under = 80` threshold. Future Phase 1 tasks will add tests to raise the
-overall coverage above the required 80%.
+The overall unit-test coverage is **92%**, exceeding the configured `fail_under = 80`
+threshold. There are **112 unit tests** and they complete in under one second.

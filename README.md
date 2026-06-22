@@ -1,6 +1,12 @@
 # Voice-to-Cursor
 
-Local-first desktop dictation: press a global hotkey, speak, and get clean text inserted at the current cursor position.
+Local-first Windows desktop dictation: press a global hotkey, speak, and get clean text inserted at the current cursor position.
+
+- Push-to-talk or toggle recording modes.
+- Silence trimming with WebRTC VAD.
+- Local ASR with faster-whisper.
+- Windows text injection via `SendInput` with optional clipboard fallback.
+- Dry-run mode for safe testing.
 
 > **Platform note:** The MVP is Windows-only. macOS and Linux support are planned for a later phase.
 
@@ -70,9 +76,14 @@ See [`docs/architecture.md`](docs/architecture.md) for a high-level overview.
 ```bash
 ruff check src tests
 mypy src
-pytest tests/ -m "not smoke and not integration and not slow and not requires_model" --timeout=60
+pytest tests/unit -m "not smoke and not integration and not slow and not requires_model" --timeout=60
 ```
+
+The project currently has **112 unit tests** with **92% code coverage**.
 
 AI assistants should read [`docs/ai_working_guide.md`](docs/ai_working_guide.md)
 before running commands or editing code. The guide documents the safe test
 commands and the rules for avoiding accidental real ASR model loads.
+
+See [`docs/architecture.md`](docs/architecture.md) for the high-level design and
+[`docs/testing.md`](docs/testing.md) for detailed testing instructions.
