@@ -97,7 +97,7 @@ class AudioCapture:
         if indata.ndim == 1:
             chunk = indata.astype(np.float32, copy=False)
         else:
-            chunk = np.mean(indata, axis=1, dtype=np.float32)
+            chunk = np.asarray(np.mean(indata, axis=1, dtype=np.float32), dtype=np.float32)
 
         if self._callback is not None:
             try:
