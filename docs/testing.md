@@ -97,32 +97,36 @@ pytest tests/ -m requires_model --timeout=300
 
 Coverage captured on 2026-06-22 after completing the integration-test expansion.
 
-| Name                          | Stmts | Miss | Branch | BrPart | Cover |
-|-------------------------------|------:|-----:|-------:|-------:|------:|
-| `src\__init__.py`             |     1 |    0 |      0 |      0 |  100% |
-| `src\app.py`                  |   105 |    6 |     24 |      3 |   93% |
-| `src\asr\__init__.py`         |     4 |    0 |      0 |      0 |  100% |
-| `src\asr\base.py`             |    20 |    0 |      0 |      0 |  100% |
-| `src\asr\model_manager.py`    |    38 |    4 |      8 |      0 |   91% |
-| `src\asr\whisper_provider.py` |    47 |    0 |      8 |      1 |   98% |
-| `src\audio\__init__.py`       |     4 |    0 |      0 |      0 |  100% |
-| `src\audio\buffer.py`         |    51 |    5 |     16 |      4 |   87% |
-| `src\audio\capture.py`        |    77 |    1 |     20 |      2 |   97% |
-| `src\audio\vad.py`            |    59 |    0 |     18 |      0 |  100% |
-| `src\config.py`               |    27 |    0 |      0 |      0 |  100% |
-| `src\hotkey\__init__.py`      |     9 |    0 |      0 |      0 |  100% |
-| `src\hotkey\base.py`          |    32 |    1 |      6 |      1 |   95% |
-| `src\hotkey\windows.py`       |    97 |   13 |     36 |      8 |   80% |
-| `src\injection\__init__.py`   |     9 |    0 |      0 |      0 |  100% |
-| `src\injection\base.py`       |    10 |    0 |      0 |      0 |  100% |
-| `src\injection\windows.py`    |    69 |    5 |     22 |      6 |   88% |
-| `src\logging_config.py`       |    12 |    0 |      0 |      0 |  100% |
-| `src\main.py`                 |    44 |    0 |     14 |      0 |  100% |
-| **TOTAL**                     | **715**| **35**| **172**| **25**| **93%** |
+| Name                             | Stmts | Miss | Branch | BrPart | Cover |
+|----------------------------------|------:|-----:|-------:|-------:|------:|
+| `src\__init__.py`                |     1 |    0 |      0 |      0 |  100% |
+| `src\app.py`                     |   108 |    6 |     24 |      3 |   93% |
+| `src\asr\__init__.py`            |     4 |    0 |      0 |      0 |  100% |
+| `src\asr\base.py`                |    20 |    0 |      0 |      0 |  100% |
+| `src\asr\model_manager.py`       |    38 |    4 |      8 |      0 |   91% |
+| `src\asr\whisper_provider.py`    |    47 |    0 |      8 |      1 |   98% |
+| `src\audio\__init__.py`          |     4 |    0 |      0 |      0 |  100% |
+| `src\audio\buffer.py`            |    51 |    5 |     16 |      4 |   87% |
+| `src\audio\capture.py`           |    77 |    1 |     20 |      2 |   97% |
+| `src\audio\vad.py`               |    59 |    0 |     18 |      0 |  100% |
+| `src\config.py`                  |    30 |    0 |      0 |      0 |  100% |
+| `src\hotkey\__init__.py`         |     9 |    0 |      0 |      0 |  100% |
+| `src\hotkey\base.py`             |    32 |    1 |      6 |      1 |   95% |
+| `src\hotkey\windows.py`          |    97 |   13 |     36 |      8 |   80% |
+| `src\injection\__init__.py`      |     9 |    0 |      0 |      0 |  100% |
+| `src\injection\base.py`          |    10 |    0 |      0 |      0 |  100% |
+| `src\injection\windows.py`       |    69 |    5 |     22 |      6 |   88% |
+| `src\logging_config.py`          |    12 |    0 |      0 |      0 |  100% |
+| `src\main.py`                    |    44 |    0 |     14 |      0 |  100% |
+| `src\postprocess\__init__.py`    |    10 |    0 |      2 |      0 |  100% |
+| `src\postprocess\base.py`        |     5 |    0 |      0 |      0 |  100% |
+| `src\postprocess\formatter.py`   |    13 |    0 |      4 |      0 |  100% |
+| `src\postprocess\llm_client.py`  |    27 |    0 |      0 |      0 |  100% |
+| **TOTAL**                        | **776**| **35**| **178**| **25**| **93%** |
 
-The overall code coverage is **93%** (92.56% precise), exceeding the configured `fail_under = 80`
-threshold. There are **112 unit tests**, **7 integration tests**, and **1 smoke
-test (120 total); the safe suites complete in under two seconds.
+The overall code coverage is **93%** (93.08% precise), exceeding the configured `fail_under = 80`
+threshold. There are **133 unit tests**, **7 integration tests**, and **1 smoke
+test (141 total); the safe suites complete in under two seconds.
 
 ## CI
 

@@ -68,7 +68,7 @@ def test_push_to_talk_flow_injects_text(app: App) -> None:
     app._capture_mock.stop.assert_called_once()
     asr_mock.transcribe.assert_called_once()
     app._injector_mock.inject_with_delay.assert_called_once_with(
-        "push to talk text",
+        "Push to talk text.",
         app.settings.injection_delay_ms,
     )
 
@@ -92,7 +92,7 @@ def test_toggle_mode_flow_injects_text(app: App) -> None:
     app._capture_mock.stop.assert_called_once()
     asr_mock.transcribe.assert_called_once()
     app._injector_mock.inject_with_delay.assert_called_once_with(
-        "toggle text",
+        "Toggle text.",
         app.settings.injection_delay_ms,
     )
 

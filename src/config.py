@@ -33,6 +33,13 @@ class Settings(BaseSettings):
     # LLM post-processing
     llm_enabled: bool = False
     llm_url: str = "http://localhost:11434"
+    llm_model: str = "llama3"
+    llm_timeout: float = 5.0
+    llm_prompt: str = (
+        "You are a helpful assistant. Fix grammar, punctuation, and formatting "
+        "of the user's text. Keep the original language. Do not add explanations. "
+        "Return only the improved text."
+    )
 
     # Text injection
     injection_delay_ms: float = 0.0

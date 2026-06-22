@@ -11,7 +11,7 @@ For day-to-day safety rules when editing or running commands, see [`docs/ai_work
 The MVP is complete and working on Windows. The critical path is implemented end-to-end:
 
 ```
-Global hotkey  →  Audio capture  →  VAD trim  →  ASR (faster-whisper)  →  Text injection
+Global hotkey  →  Audio capture  →  VAD trim  →  ASR (faster-whisper)  →  Post-processing  →  Text injection
 ```
 
 ## Data flow
@@ -21,8 +21,9 @@ Global hotkey  →  Audio capture  →  VAD trim  →  ASR (faster-whisper)  →
 3. While the key is held, `AudioCapture` streams microphone chunks into `AudioBuffer`.
 4. On release, `App` stops capture, runs VAD-based silence trimming, and sends the trimmed audio to `ASRProvider`.
 5. `FasterWhisperProvider` transcribes the audio (model is lazy-loaded on first use).
-6. `App` passes the resulting text to `TextInjector`.
-7. `WindowsTextInjector` types the text at the active cursor via `SendInput`, or falls back to clipboard paste when configured.
+6. `App` passes the raw transcript to a `PostProcessor`. The default implementation is a deterministic `TextFormatter`; when `llm_enabled` is true an `LLMPostProcessor` backed by an Ollama LLM is used instead.
+7. `App` passes the post-processed text to `TextInjector`.
+8. `WindowsTextInjector` types the text at the active cursor via `SendInput`, or falls back to clipboard paste when configured.
 
 In `--dry-run` mode the text is logged instead of injected.
 
@@ -35,7 +36,7 @@ CLI entry point. Parses arguments, loads `Settings` from environment/`.env`, app
 Application orchestrator. Owns the hotkey manager, audio capture, buffer, VAD provider, ASR provider, and text injector. Implements both push-to-talk and toggle modes.
 
 ### `src/config.py`
-Pydantic-settings based configuration. Includes hotkey, audio, ASR, VAD, injection, and dry-run settings.
+Pydantic-settings based configuration. Includes hotkey, audio, ASR, LLM post-processing, VAD, injection, and dry-run settings.
 
 ### `src/logging_config.py`
 Loguru configuration with console and rotating file sinks.
@@ -54,6 +55,12 @@ Loguru configuration with console and rotating file sinks.
 - `base.py` — `HotkeyManager` interface and `parse_hotkey` helper.
 - `windows.py` — `PynputHotkeyManager` implements global hotkeys on Windows using `pynput`, supporting push-to-talk and toggle modes.
 
+### `src/postprocess/`
+- `base.py` — `PostProcessor` interface with `process(text, context)`.
+- `formatter.py` — `TextFormatter` applies deterministic cleanup (whitespace collapse, capitalization, terminal punctuation).
+- `llm_client.py` — `OllamaClient` and `LLMPostProcessor` improve transcripts via the Ollama `/api/chat` endpoint, falling back to the raw text on any error.
+- `__init__.py` — `create_post_processor(settings)` factory chooses between LLM and deterministic formatting based on `settings.llm_enabled`.
+
 ### `src/injection/`
 - `base.py` — `TextInjector` interface.
 - `windows.py` — `WindowsTextInjector` uses `ctypes`/`SendInput` with `KEYEVENTF_UNICODE` for direct text injection, with an optional clipboard fallback.
@@ -70,6 +77,7 @@ Loguru configuration with console and rotating file sinks.
 Completed:
 - [x] Infrastructure, audio capture, VAD, ASR, hotkeys, text injection, pipeline integration.
 - [x] Unit test coverage > 90 %.
+- [x] LLM post-processing layer (Phase 1 of v0.2).
 
 Planned:
 - [ ] System tray / settings UI (v0.2)

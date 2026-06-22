@@ -14,6 +14,7 @@ from src.audio.vad import WebRTCVADProvider
 from src.config import Settings
 from src.hotkey import create_hotkey_manager
 from src.injection import WindowsTextInjector, create_text_injector
+from src.postprocess import create_post_processor
 
 if TYPE_CHECKING:  # pragma: no cover
     from src.asr.base import ASRProvider
@@ -78,6 +79,7 @@ class App:
         self.injector: TextInjector = create_text_injector()
         if isinstance(self.injector, WindowsTextInjector):
             self.injector.fallback_to_clipboard = settings.injection_fallback_to_clipboard
+        self.post_processor = create_post_processor(settings)
         self._asr: ASRProvider | None = None
         self.vad = self._create_vad()
         on_press = self.start_recording if settings.push_to_talk else self.toggle_recording
@@ -168,7 +170,8 @@ class App:
             return
 
         text = self.transcribe_audio(prepared)
-        logger.info("Transcribed text to inject: {}", text)
+        text = self.post_processor.process(text)
+        logger.info("Post-processed text: {}", text)
         self.inject_text(text)
 
     def _prepare_audio(self, audio: np.ndarray) -> np.ndarray:

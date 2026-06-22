@@ -20,6 +20,9 @@ def test_default_settings() -> None:
     assert settings.asr_language == "auto"
     assert settings.llm_enabled is False
     assert settings.llm_url == "http://localhost:11434"
+    assert settings.llm_model == "llama3"
+    assert settings.llm_timeout == 5.0
+    assert "Fix grammar" in settings.llm_prompt
     assert settings.data_dir == Path("data")
     assert settings.models_dir == Path("models")
 
@@ -30,6 +33,7 @@ def test_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("PUSH_TO_TALK", "false")
     monkeypatch.setenv("AUDIO_SAMPLE_RATE", "44100")
     monkeypatch.setenv("LLM_ENABLED", "true")
+    monkeypatch.setenv("LLM_MODEL", "mistral")
     monkeypatch.setenv("DATA_DIR", "/tmp/voice_data")
 
     settings = Settings()

@@ -113,14 +113,16 @@ def test_stop_recording_transcribes_and_injects(app: App, settings: Settings) ->
     asr_mock = MagicMock()
     asr_mock.transcribe.return_value.text = "hello world"
     app._asr = asr_mock
+    app.post_processor.process = MagicMock(return_value="Hello world.")
 
     app.stop_recording()
 
     app._capture_mock.stop.assert_called_once()
     app._buffer_mock.clear.assert_called_once()
     asr_mock.transcribe.assert_called_once()
+    app.post_processor.process.assert_called_once_with("hello world")
     app._injector_mock.inject_with_delay.assert_called_once_with(
-        "hello world",
+        "Hello world.",
         settings.injection_delay_ms,
     )
 
@@ -135,11 +137,13 @@ def test_stop_recording_dry_run_skips_injection(app: App, settings: Settings) ->
     asr_mock = MagicMock()
     asr_mock.transcribe.return_value.text = "dry run text"
     app._asr = asr_mock
+    app.post_processor.process = MagicMock(return_value="Dry run text.")
 
     app.stop_recording()
 
     app._injector_mock.inject_with_delay.assert_not_called()
     asr_mock.transcribe.assert_called_once()
+    app.post_processor.process.assert_called_once_with("dry run text")
 
 
 def test_stop_recording_no_audio_skips_asr(app: App) -> None:
