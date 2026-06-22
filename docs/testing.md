@@ -24,16 +24,16 @@ Python workers.
 
 ## Running with coverage
 
-To run unit tests and print a missing-line coverage report:
+To run unit tests and integration tests and print a missing-line coverage report:
 
 ```bash
-pytest tests/unit -m "not smoke and not integration and not slow and not requires_model" --cov=src --cov-report=term-missing --timeout=60
+pytest tests/unit tests/integration -m "not smoke and not slow and not requires_model" --cov=src --cov-report=term-missing --timeout=60
 ```
 
 To also generate an HTML coverage report:
 
 ```bash
-pytest tests/unit --cov=src --cov-report=term-missing --cov-report=html
+pytest tests/unit tests/integration --cov=src --cov-report=term-missing --cov-report=html
 ```
 
 Alternatively use the convenience scripts:
@@ -95,8 +95,7 @@ pytest tests/ -m requires_model --timeout=300
 
 ## Current coverage
 
-Coverage captured on 2026-06-22 after completing the recording indicator and
-notifications implementation (Phase 4 of v0.2).
+Coverage captured on 2026-06-22 after completing Phase 5 of v0.2 (final integration, documentation, and version bump).
 
 | Name                             | Stmts | Miss | Branch | BrPart | Cover |
 |----------------------------------|------:|-----:|-------:|-------:|------:|
@@ -118,7 +117,7 @@ notifications implementation (Phase 4 of v0.2).
 | `src\injection\base.py`          |    10 |    0 |      0 |      0 |  100% |
 | `src\injection\windows.py`       |    69 |    5 |     22 |      6 |   88% |
 | `src\logging_config.py`          |    12 |    0 |      0 |      0 |  100% |
-| `src\main.py`                    |    75 |    6 |     14 |      1 |   92% |
+| `src\main.py`                    |    88 |    7 |     16 |      1 |   92% |
 | `src\postprocess\__init__.py`    |    10 |    0 |      2 |      0 |  100% |
 | `src\postprocess\base.py`        |     5 |    0 |      0 |      0 |  100% |
 | `src\postprocess\formatter.py`   |    13 |    0 |      4 |      0 |  100% |
@@ -126,7 +125,7 @@ notifications implementation (Phase 4 of v0.2).
 | `src\ui\__init__.py`             |     4 |    0 |      0 |      0 |  100% |
 | `src\ui\settings_window.py`      |    90 |    0 |      6 |      0 |  100% |
 | `src\ui\tray.py`                 |    66 |    0 |     12 |      2 |   97% |
-| **TOTAL**                        | **993**| **42**| **202**| **28**| **94%** |
+| **TOTAL**                        | **1006** | **42** | **204** | **28** | **94%** |
 
 The overall code coverage is **94%** (93.64% precise), exceeding the configured `fail_under = 80`
 threshold. There are **155 unit tests**, **7 integration tests**, and **1 smoke

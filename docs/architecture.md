@@ -8,8 +8,9 @@ For day-to-day safety rules when editing or running commands, see [`docs/ai_work
 
 ## Current status
 
-The MVP is complete and working on Windows. Phase 1 (LLM post-processing), Phase 2
-(system tray), and Phase 3 (settings window) of v0.2 are implemented. The critical path is implemented end-to-end:
+The MVP is complete and working on Windows. All v0.2 phases are implemented: LLM post-processing (Phase 1), system tray icon (Phase 2), settings window (Phase 3), and recording indicator/notifications (Phase 4). Phase 5 finalized integration, documentation, and version bump.
+
+The critical path is implemented end-to-end:
 
 ```
 Global hotkey  →  Audio capture  →  VAD trim  →  ASR (faster-whisper)  →  Post-processing  →  Text injection
@@ -80,13 +81,18 @@ Loguru configuration with console and rotating file sinks.
 - Heavy imports (`faster_whisper`, `webrtcvad`) are deferred where possible.
 - Real hardware/OS interaction (microphone, hotkeys, injection) is gated behind smoke tests and scripts, not unit tests.
 
-## Threading model
+## Qt UI layer and threading model
 
 `QApplication` must run on the main (GUI) thread. `App.start()` blocks on a hotkey/audio
 loop, so `main()` wraps `App` in a `_Worker(QObject)` and moves it to a dedicated
 `QThread`. The worker thread calls `App.start()`; the main thread remains available for
 tray input and the Qt event loop. On exit, `aboutToQuit` stops `App`, quits the worker
 thread, and waits up to five seconds for a clean shutdown.
+
+`TrayIcon` lives on the main thread and communicates with the worker thread through
+Qt signals and slots. `App` emits recording-state changes and injection results through
+plain callback attributes; `main()` wires those callbacks to `TrayIcon` methods that
+internally emit signals so the UI updates safely on the Qt thread.
 
 ## Roadmap
 
@@ -97,6 +103,7 @@ Completed:
 - [x] System tray icon with PyQt6 (Phase 2 of v0.2).
 - [x] Settings window with PyQt6 (Phase 3 of v0.2).
 - [x] Recording indicator and dictation notifications (Phase 4 of v0.2).
+- [x] Final integration, documentation, and version bump (Phase 5 of v0.2).
 
 Planned:
 - [ ] User dictionary and adaptive learning (v0.3).
