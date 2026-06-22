@@ -1,6 +1,6 @@
 # Voice-to-Cursor
 
-![CI](https://github.com/Jury/Vo-IS/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/yager1t/VoIS/actions/workflows/ci.yml/badge.svg)
 
 Local-first Windows desktop dictation: press a global hotkey, speak, and get clean text inserted at the current cursor position.
 
