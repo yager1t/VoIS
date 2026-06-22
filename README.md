@@ -81,7 +81,7 @@ mypy src
 pytest tests/unit -m "not smoke and not integration and not slow and not requires_model" --timeout=60
 ```
 
-The project currently has **112 unit tests**, **7 integration tests**, and **1 smoke test** with **92% code coverage**.
+The project currently has **112 unit tests**, **7 integration tests**, and **1 smoke test** with **93% code coverage**.
 
 AI assistants should read [`docs/ai_working_guide.md`](docs/ai_working_guide.md)
 before running commands or editing code. The guide documents the safe test

@@ -108,7 +108,7 @@ Coverage captured on 2026-06-22 after completing the integration-test expansion.
 | `src\audio\__init__.py`       |     4 |    0 |      0 |      0 |  100% |
 | `src\audio\buffer.py`         |    51 |    5 |     16 |      4 |   87% |
 | `src\audio\capture.py`        |    77 |    1 |     20 |      2 |   97% |
-| `src\audio\vad.py`            |    59 |    4 |     18 |      2 |   92% |
+| `src\audio\vad.py`            |    59 |    0 |     18 |      0 |  100% |
 | `src\config.py`               |    27 |    0 |      0 |      0 |  100% |
 | `src\hotkey\__init__.py`      |     9 |    0 |      0 |      0 |  100% |
 | `src\hotkey\base.py`          |    32 |    1 |      6 |      1 |   95% |
@@ -118,11 +118,11 @@ Coverage captured on 2026-06-22 after completing the integration-test expansion.
 | `src\injection\windows.py`    |    69 |    5 |     22 |      6 |   88% |
 | `src\logging_config.py`       |    12 |    0 |      0 |      0 |  100% |
 | `src\main.py`                 |    44 |    0 |     14 |      0 |  100% |
-| **TOTAL**                     | **715**| **39**| **172**| **27**| **92%** |
+| **TOTAL**                     | **715**| **35**| **172**| **25**| **93%** |
 
-The overall unit-test coverage is **92%**, exceeding the configured `fail_under = 80`
+The overall code coverage is **93%** (92.56% precise), exceeding the configured `fail_under = 80`
 threshold. There are **112 unit tests**, **7 integration tests**, and **1 smoke
-test** (120 total); combined they complete in under two seconds.
+test (120 total); the safe suites complete in under two seconds.
 
 ## CI
 
