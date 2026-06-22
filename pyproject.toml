@@ -54,7 +54,7 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
-addopts = "-q --strict-markers -m 'not smoke and not integration and not slow and not requires_model'"
+addopts = "-q --strict-markers -m 'not integration and not slow and not requires_model'"
 timeout = 60
 timeout_method = "thread"
 markers = [

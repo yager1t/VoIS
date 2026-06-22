@@ -1,5 +1,7 @@
 # Voice-to-Cursor
 
+![CI](https://github.com/Jury/Vo-IS/actions/workflows/ci.yml/badge.svg)
+
 Local-first Windows desktop dictation: press a global hotkey, speak, and get clean text inserted at the current cursor position.
 
 - Push-to-talk or toggle recording modes.
@@ -79,7 +81,7 @@ mypy src
 pytest tests/unit -m "not smoke and not integration and not slow and not requires_model" --timeout=60
 ```
 
-The project currently has **112 unit tests** with **92% code coverage**.
+The project currently has **112 unit tests**, **7 integration tests**, and **1 smoke test** with **92% code coverage**.
 
 AI assistants should read [`docs/ai_working_guide.md`](docs/ai_working_guide.md)
 before running commands or editing code. The guide documents the safe test

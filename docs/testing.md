@@ -59,12 +59,31 @@ pytest tests/integration -q --timeout=60
 
 ## Running smoke tests
 
-Smoke tests require real hardware (microphone) and OS interaction (global
-hotkeys, text injection). They are not run as part of the default unit test
-suite. To run them explicitly once supported and approved:
+Smoke tests exercise the composed App pipeline end-to-end. They are marked with
+`@pytest.mark.smoke` and skipped by default. The automated harness in
+`tests/smoke/test_smoke.py` stubs platform dependencies so it does not open a
+real microphone, register global hotkeys, or inject text, but it still requires
+explicit opt-in via the `--run-smoke` flag:
 
 ```bash
-pytest tests/ -m smoke
+pytest tests/smoke -v --run-smoke --timeout=30
+```
+
+Convenience scripts are provided for manual runs:
+
+```bash
+# Bash (Git Bash / WSL / Linux / macOS)
+./scripts/run_smoke.sh
+
+# Windows Command Prompt
+scripts\run_smoke.bat
+```
+
+For interactive manual smoke testing you can still use the legacy script, but
+new automated runs should prefer `tests/smoke/test_smoke.py`:
+
+```bash
+python scripts/smoke_test.py --duration 30 --dry-run
 ```
 
 Real ASR model tests must be marked `requires_model` and run only when explicitly
@@ -102,5 +121,13 @@ Coverage captured on 2026-06-22 after completing the integration-test expansion.
 | **TOTAL**                     | **715**| **39**| **172**| **27**| **92%** |
 
 The overall unit-test coverage is **92%**, exceeding the configured `fail_under = 80`
-threshold. There are **112 unit tests** and **7 integration tests**; combined
-they complete in under two seconds.
+threshold. There are **112 unit tests**, **7 integration tests**, and **1 smoke
+test** (120 total); combined they complete in under two seconds.
+
+## CI
+
+Continuous integration is configured in `.github/workflows/ci.yml`. The workflow
+runs on pushes and pull requests to `master` and `main`, linting with `ruff`,
+type-checking with `mypy`, and executing the unit and integration test suites
+with coverage on Python 3.11 and 3.12. Smoke tests are not run in CI because they
+require the `--run-smoke` opt-in flag.

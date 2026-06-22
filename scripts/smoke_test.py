@@ -1,5 +1,10 @@
 """Smoke test: run the Voice-to-Cursor pipeline for a limited time.
 
+.. deprecated::
+    This manual script is kept for ad-hoc interactive smoke testing. The
+    automated smoke test harness lives in ``tests/smoke/test_smoke.py`` and is
+    run via ``scripts/run_smoke.sh`` or ``scripts/run_smoke.bat``.
+
 This script starts the full application in dry-run mode by default so it
 prints transcribed text instead of injecting it into the active window.
 

@@ -9,6 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import numpy as np
 import pytest
+from pytest import Config, Item, Parser
 
 from src.config import Settings
 
@@ -104,3 +105,30 @@ def patched_model_manager() -> Generator[MagicMock, None, None]:
         manager_mock.create = mock_create
         manager_mock.model = mock_model
         yield manager_mock
+
+
+def pytest_addoption(parser: Parser) -> None:
+    """Register the ``--run-smoke`` CLI option for smoke tests."""
+    parser.addoption(
+        "--run-smoke",
+        action="store_true",
+        default=False,
+        help="run smoke tests",
+    )
+
+
+def pytest_configure(config: Config) -> None:
+    """Register custom markers used by the test suite."""
+    config.addinivalue_line(
+        "markers",
+        "smoke: marks tests requiring real hardware/OS interaction",
+    )
+
+
+def pytest_collection_modifyitems(config: Config, items: list[Item]) -> None:
+    """Skip smoke tests unless ``--run-smoke`` was requested."""
+    if not config.getoption("--run-smoke"):
+        skip_smoke = pytest.mark.skip(reason="need --run-smoke option to run")
+        for item in items:
+            if "smoke" in item.keywords:
+                item.add_marker(skip_smoke)
