@@ -2,6 +2,7 @@
 
 from loguru import logger
 
+from src.audio.capture import AudioCapture
 from src.config import Settings
 
 
@@ -16,6 +17,8 @@ class App:
         """
         self.settings = settings
         self._running = False
+        self.capture = AudioCapture(settings)
+        logger.debug("AudioCapture initialized")
 
     def start(self) -> None:
         """Start the voice-to-cursor service."""
@@ -36,4 +39,15 @@ class App:
         if not self._running:
             return
         self._running = False
+        self.capture.stop()
         logger.info("Voice-to-Cursor stopped")
+
+    def start_recording(self) -> None:
+        """Start audio recording (placeholder integration)."""
+        logger.info("Start recording requested")
+        self.capture.start()
+
+    def stop_recording(self) -> None:
+        """Stop audio recording (placeholder integration)."""
+        logger.info("Stop recording requested")
+        self.capture.stop()
