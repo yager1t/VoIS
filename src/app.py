@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -9,13 +10,51 @@ from loguru import logger
 
 from src.audio.buffer import AudioBuffer
 from src.audio.capture import AudioCapture
+from src.audio.vad import WebRTCVADProvider
 from src.config import Settings
 from src.hotkey import create_hotkey_manager
 from src.injection import WindowsTextInjector, create_text_injector
 
 if TYPE_CHECKING:  # pragma: no cover
     from src.asr.base import ASRProvider
+    from src.audio.vad import VADProvider
     from src.injection.base import TextInjector
+
+
+def trim_silence(
+    audio: np.ndarray,
+    sample_rate: int,
+    vad: VADProvider,
+    *,
+    trim_seconds: float = 0.3,
+    frame_ms: int = 30,
+) -> np.ndarray:
+    """Trim leading and trailing silence using voice activity detection.
+
+    Args:
+        audio: One-dimensional ``float32`` audio samples.
+        sample_rate: Sample rate in Hz.
+        vad: Voice activity detection provider.
+        trim_seconds: Minimum silence duration to trim around speech, in seconds.
+        frame_ms: Frame duration used by the VAD in milliseconds.
+
+    Returns:
+        Trimmed audio, or an empty array if no speech is detected.
+    """
+    if audio.size == 0:
+        return audio
+
+    frame_seconds = frame_ms / 1000.0
+    keep_chunks = max(1, int(round(trim_seconds / frame_seconds)))
+    segments = vad.split_on_silence(
+        audio,
+        sample_rate,
+        frame_ms=frame_ms,
+        keep_chunks=keep_chunks,
+    )
+    if not segments:
+        return np.array([], dtype=np.float32)
+    return np.concatenate(segments, dtype=np.float32)
 
 
 class App:
@@ -29,6 +68,7 @@ class App:
         """
         self.settings = settings
         self._running = False
+        self._shutdown_event = threading.Event()
         self.capture = AudioCapture(settings)
         self.buffer = AudioBuffer()
         self.capture.set_callback(self.buffer.append)
@@ -36,13 +76,22 @@ class App:
         if isinstance(self.injector, WindowsTextInjector):
             self.injector.fallback_to_clipboard = settings.injection_fallback_to_clipboard
         self._asr: ASRProvider | None = None
+        self.vad = self._create_vad()
         self.hotkey = create_hotkey_manager(
             settings.hotkey,
             push_to_talk=settings.push_to_talk,
             on_press=self.start_recording,
             on_release=self.stop_recording,
         )
-        logger.debug("AudioCapture and HotkeyManager initialized")
+        logger.debug("AudioCapture, VAD, and HotkeyManager initialized")
+
+    def _create_vad(self) -> VADProvider:
+        """Create a VAD provider from settings.
+
+        Returns:
+            Configured VAD provider.
+        """
+        return WebRTCVADProvider(aggressiveness=self.settings.vad_aggressiveness)
 
     @property
     def asr(self) -> ASRProvider:
@@ -58,12 +107,13 @@ class App:
         """Start the voice-to-cursor service."""
         self.settings.ensure_dirs()
         self._running = True
+        self._shutdown_event.clear()
         self.hotkey.start()
         logger.info("Voice-to-Cursor started (hotkey: {})", self.settings.hotkey)
         try:
             while self._running:
                 # Main thread idle loop; hotkey events run on a daemon thread.
-                pass  # pragma: no cover
+                self._shutdown_event.wait(timeout=0.1)
         except KeyboardInterrupt:
             logger.info("KeyboardInterrupt received")
         finally:
@@ -74,6 +124,7 @@ class App:
         if not self._running:
             return
         self._running = False
+        self._shutdown_event.set()
         self.hotkey.stop()
         self.capture.stop()
         logger.info("Voice-to-Cursor stopped")
@@ -95,17 +146,43 @@ class App:
             logger.info("No audio captured; nothing to inject")
             return
 
-        text = self.transcribe_audio(audio)
+        prepared = self._prepare_audio(audio)
+        if prepared.size == 0:
+            logger.info("No speech detected after VAD trimming; skipping")
+            return
+
+        text = self.transcribe_audio(prepared)
         logger.info("Transcribed text to inject: {}", text)
         self.inject_text(text)
 
+    def _prepare_audio(self, audio: np.ndarray) -> np.ndarray:
+        """Trim silence and validate audio before transcription.
+
+        Args:
+            audio: One-dimensional ``float32`` audio samples.
+
+        Returns:
+            Trimmed audio ready for ASR, or an empty array if no speech is found.
+        """
+        return trim_silence(
+            audio,
+            self.settings.audio_sample_rate,
+            self.vad,
+            trim_seconds=self.settings.vad_trim_seconds,
+        )
+
     def inject_text(self, text: str) -> None:
         """Inject the given text at the current cursor position.
+
+        In dry-run mode the text is logged but not injected.
 
         Args:
             text: Text to type or paste.
         """
         if not text:
+            return
+        if self.settings.dry_run:
+            logger.info("[dry-run] would inject: {}", text)
             return
         self.injector.inject_with_delay(text, self.settings.injection_delay_ms)
         logger.info("Injected {} character(s)", len(text))

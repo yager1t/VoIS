@@ -37,6 +37,13 @@ class Settings(BaseSettings):
     injection_delay_ms: float = 0.0
     injection_fallback_to_clipboard: bool = False
 
+    # Voice activity detection
+    vad_aggressiveness: int = 1
+    vad_trim_seconds: float = 0.3
+
+    # Dry-run mode (print instead of injecting)
+    dry_run: bool = False
+
     # Paths
     data_dir: Path = Path("data")
     models_dir: Path = Path("models")

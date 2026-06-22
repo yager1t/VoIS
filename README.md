@@ -2,23 +2,59 @@
 
 Local-first desktop dictation: press a global hotkey, speak, and get clean text inserted at the current cursor position.
 
+> **Platform note:** The MVP is Windows-only. macOS and Linux support are planned for a later phase.
+
 ## Installation
 
 ```bash
 pip install -r requirements-dev.txt
 ```
 
-## Run
+The first run downloads the Whisper model into `models/`; this may take a few minutes depending on the model size.
+
+## Quick start
+
+Run in **dry-run mode** first to verify that audio capture, VAD, and ASR work without typing text into another application:
+
+```bash
+python -m src.main --dry-run
+```
+
+Hold the hotkey (default `f9`), speak, and release. The transcribed text is printed to the console instead of injected.
+
+Once everything looks good, run the real mode:
 
 ```bash
 python -m src.main
 ```
 
-Optional custom configuration:
+Hold `f9`, speak, and release to insert the transcription at the cursor.
+
+## CLI options
 
 ```bash
-python -m src.main --config /path/to/.env
+python -m src.main --model base --language en --device cpu --hotkey f10 --dry-run
 ```
+
+| Flag | Description |
+|------|-------------|
+| `--config PATH` | Path to an optional `.env` configuration file. |
+| `--model SIZE` | Whisper model size: `tiny`, `base`, `small`, `medium`, `large`. |
+| `--language CODE` | ASR language code, or `auto` for detection. |
+| `--device {cpu,cuda}` | Device to run the ASR model on. |
+| `--hotkey KEY` | Override the global hotkey, e.g. `f9` or `<ctrl>+f9`. |
+| `--toggle` | Disable push-to-talk; each press toggles recording on/off. |
+| `--dry-run` | Print transcribed text instead of injecting it. |
+
+## Smoke test
+
+A convenience script runs the pipeline for a limited time:
+
+```bash
+python scripts/smoke_test.py --duration 30 --dry-run
+```
+
+By default it runs in dry-run mode. Add `--no-dry-run` to perform real text injection during the test.
 
 ## Configuration
 
