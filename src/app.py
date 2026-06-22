@@ -9,6 +9,7 @@ from loguru import logger
 
 from src.audio.capture import AudioCapture
 from src.config import Settings
+from src.hotkey import create_hotkey_manager
 
 if TYPE_CHECKING:  # pragma: no cover
     from src.asr.base import ASRProvider
@@ -27,7 +28,13 @@ class App:
         self._running = False
         self.capture = AudioCapture(settings)
         self._asr: ASRProvider | None = None
-        logger.debug("AudioCapture initialized")
+        self.hotkey = create_hotkey_manager(
+            settings.hotkey,
+            push_to_talk=settings.push_to_talk,
+            on_press=self.start_recording,
+            on_release=self.stop_recording,
+        )
+        logger.debug("AudioCapture and HotkeyManager initialized")
 
     @property
     def asr(self) -> ASRProvider:
@@ -43,10 +50,11 @@ class App:
         """Start the voice-to-cursor service."""
         self.settings.ensure_dirs()
         self._running = True
+        self.hotkey.start()
         logger.info("Voice-to-Cursor started (hotkey: {})", self.settings.hotkey)
         try:
             while self._running:
-                # Placeholder: event loop / hotkey listener will be wired here.
+                # Main thread idle loop; hotkey events run on a daemon thread.
                 pass  # pragma: no cover
         except KeyboardInterrupt:
             logger.info("KeyboardInterrupt received")
@@ -58,16 +66,17 @@ class App:
         if not self._running:
             return
         self._running = False
+        self.hotkey.stop()
         self.capture.stop()
         logger.info("Voice-to-Cursor stopped")
 
     def start_recording(self) -> None:
-        """Start audio recording (placeholder integration)."""
+        """Start audio recording when the hotkey is pressed."""
         logger.info("Start recording requested")
         self.capture.start()
 
     def stop_recording(self) -> None:
-        """Stop audio recording (placeholder integration)."""
+        """Stop audio recording when the hotkey is released."""
         logger.info("Stop recording requested")
         self.capture.stop()
 

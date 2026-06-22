@@ -14,5 +14,8 @@ faster-whisper>=1.0
 torch>=2.0
 huggingface-hub>=0.20
 
+# Global hotkey listener
+pynput>=1.7
+
 # Install CPU-only torch to avoid large GPU downloads:
 # pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cpu
