@@ -48,7 +48,7 @@ def test_app_smoke_pipeline(tmp_path) -> None:
         patch("src.app.create_text_injector") as mock_injector_factory,
         patch("src.app.AudioCapture") as mock_capture_cls,
         patch("src.app.WebRTCVADProvider") as mock_vad_cls,
-        patch("src.app.FasterWhisperProvider") as mock_asr_cls,
+        patch("src.asr.whisper_provider.FasterWhisperProvider") as mock_asr_cls,
     ):
         mock_hotkey_factory.return_value = MagicMock()
         mock_injector_factory.return_value = MagicMock()
