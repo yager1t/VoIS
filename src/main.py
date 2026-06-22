@@ -1,12 +1,18 @@
 """CLI entry point for the Voice-to-Cursor application."""
 
+from __future__ import annotations
+
 import argparse
 import os
 import sys
 
+from PyQt6.QtCore import QObject, QThread
+from PyQt6.QtWidgets import QApplication
+
 from src.app import App
 from src.config import Settings
 from src.logging_config import configure_logging, logger
+from src.ui.tray import TrayIcon
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -91,14 +97,34 @@ def apply_cli_overrides(settings: Settings, args: argparse.Namespace) -> Setting
     return settings
 
 
+class _Worker(QObject):
+    """QObject wrapper that runs ``App`` in a background ``QThread``."""
+
+    def __init__(self, app: App) -> None:
+        """Initialize the worker.
+
+        Args:
+            app: Application orchestrator to run in the thread.
+        """
+        super().__init__()
+        self.app = app
+
+    def start(self) -> None:
+        """Start the App loop in this thread."""
+        self.app.start()
+
+
 def main(argv: list[str] | None = None) -> int:
     """Application entry point.
+
+    Creates the Qt application, system tray icon, and runs the dictation
+    service in a background ``QThread`` so the tray UI stays responsive.
 
     Args:
         argv: Optional argument list.
 
     Returns:
-        Exit code.
+        Exit code from the Qt event loop.
     """
     args = parse_args(argv)
     env_file = args.config or ".env"
@@ -113,13 +139,29 @@ def main(argv: list[str] | None = None) -> int:
     configure_logging()
     logger.info("Configuration loaded: {}", settings.model_dump(exclude={"llm_url"}))
 
+    qt_app = QApplication(sys.argv)
+    qt_app.setQuitOnLastWindowClosed(False)
+
     app = App(settings)
-    try:
-        app.start()
-    except Exception as exc:  # pragma: no cover - defensive catch-all
-        logger.exception("Unhandled error: {}", exc)
-        return 1
-    return 0
+    tray = TrayIcon(app, settings)
+    tray.show()
+
+    worker = _Worker(app)
+    thread = QThread()
+    worker.moveToThread(thread)
+    thread.started.connect(worker.start)
+    thread.finished.connect(worker.deleteLater)
+    thread.finished.connect(thread.deleteLater)
+
+    def _on_quit() -> None:
+        app.stop()
+        thread.quit()
+        thread.wait(5000)
+
+    qt_app.aboutToQuit.connect(_on_quit)
+    thread.start()
+
+    return qt_app.exec()
 
 
 if __name__ == "__main__":  # pragma: no cover

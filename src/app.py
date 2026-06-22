@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import threading
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -70,6 +71,9 @@ class App:
         self.settings = settings
         self._running = False
         self._shutdown_event = threading.Event()
+        self.recording_started: Callable[[], None] | None = None
+        self.recording_stopped: Callable[[], None] | None = None
+        self.text_injected: Callable[[str], None] | None = None
         self.capture = AudioCapture(settings)
         self.buffer = AudioBuffer(
             max_seconds=settings.audio_max_record_seconds,
@@ -145,6 +149,7 @@ class App:
         logger.info("Start recording requested")
         self.buffer.clear()
         self.capture.start()
+        self._invoke_callback("recording_started")
 
     def toggle_recording(self) -> None:
         """Toggle recording mode and transcribe when a recording is stopped."""
@@ -160,19 +165,38 @@ class App:
 
         audio = self.buffer.get()
         self.buffer.clear()
-        if audio.size == 0:
+
+        text = ""
+        if audio.size > 0:
+            prepared = self._prepare_audio(audio)
+            if prepared.size > 0:
+                text = self.transcribe_audio(prepared)
+                text = self.post_processor.process(text)
+                logger.info("Post-processed text: {}", text)
+                self.inject_text(text)
+            else:
+                logger.info("No speech detected after VAD trimming; skipping")
+        else:
             logger.info("No audio captured; nothing to inject")
-            return
 
-        prepared = self._prepare_audio(audio)
-        if prepared.size == 0:
-            logger.info("No speech detected after VAD trimming; skipping")
-            return
+        self._invoke_callback("recording_stopped")
+        if text:
+            self._invoke_callback("text_injected", text)
 
-        text = self.transcribe_audio(prepared)
-        text = self.post_processor.process(text)
-        logger.info("Post-processed text: {}", text)
-        self.inject_text(text)
+    def _invoke_callback(self, name: str, *args: object) -> None:
+        """Invoke a callback attribute if it has been set.
+
+        Args:
+            name: Callback attribute name.
+            *args: Arguments to pass to the callback.
+        """
+        callback = getattr(self, name, None)
+        if callback is not None:
+            callback(*args)
+
+    def is_running(self) -> bool:
+        """Return whether the service is currently running."""
+        return self._running
 
     def _prepare_audio(self, audio: np.ndarray) -> np.ndarray:
         """Trim silence and validate audio before transcription.

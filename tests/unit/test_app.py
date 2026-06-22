@@ -84,6 +84,16 @@ def test_start_recording_clears_buffer_and_starts_capture(app: App) -> None:
     app._capture_mock.start.assert_called_once()
 
 
+def test_start_recording_invokes_callback(app: App) -> None:
+    """start_recording should invoke the recording_started callback."""
+    callback = MagicMock()
+    app.recording_started = callback
+
+    app.start_recording()
+
+    callback.assert_called_once_with()
+
+
 def test_toggle_recording_starts_then_stops_and_transcribes(app: App) -> None:
     """toggle_recording should start first, then stop/transcribe on next press."""
     audio = np.ones(SAMPLE_RATE, dtype=np.float32)
@@ -127,6 +137,28 @@ def test_stop_recording_transcribes_and_injects(app: App, settings: Settings) ->
     )
 
 
+def test_stop_recording_invokes_callbacks(app: App) -> None:
+    """stop_recording should invoke recording_stopped and text_injected."""
+    audio = np.ones(SAMPLE_RATE, dtype=np.float32)
+    app._buffer_mock.get.return_value = audio
+    app.vad.split_on_silence.return_value = [audio]
+
+    asr_mock = MagicMock()
+    asr_mock.transcribe.return_value.text = "hello world"
+    app._asr = asr_mock
+    app.post_processor.process = MagicMock(return_value="Hello world.")
+
+    stopped = MagicMock()
+    text_injected = MagicMock()
+    app.recording_stopped = stopped
+    app.text_injected = text_injected
+
+    app.stop_recording()
+
+    stopped.assert_called_once_with()
+    text_injected.assert_called_once_with("Hello world.")
+
+
 def test_stop_recording_dry_run_skips_injection(app: App, settings: Settings) -> None:
     """In dry-run mode stop_recording should log text without injecting."""
     settings.dry_run = True
@@ -152,10 +184,17 @@ def test_stop_recording_no_audio_skips_asr(app: App) -> None:
     asr_mock = MagicMock()
     app._asr = asr_mock
 
+    stopped = MagicMock()
+    text_injected = MagicMock()
+    app.recording_stopped = stopped
+    app.text_injected = text_injected
+
     app.stop_recording()
 
     asr_mock.transcribe.assert_not_called()
     app._injector_mock.inject_with_delay.assert_not_called()
+    stopped.assert_called_once_with()
+    text_injected.assert_not_called()
 
 
 def test_stop_recording_no_speech_after_vad_skips_injection(app: App) -> None:
@@ -167,10 +206,17 @@ def test_stop_recording_no_speech_after_vad_skips_injection(app: App) -> None:
     asr_mock = MagicMock()
     app._asr = asr_mock
 
+    stopped = MagicMock()
+    text_injected = MagicMock()
+    app.recording_stopped = stopped
+    app.text_injected = text_injected
+
     app.stop_recording()
 
     asr_mock.transcribe.assert_not_called()
     app._injector_mock.inject_with_delay.assert_not_called()
+    stopped.assert_called_once_with()
+    text_injected.assert_not_called()
 
 
 def test_stop_sets_event_and_stops_hotkey(app: App) -> None:
@@ -183,6 +229,15 @@ def test_stop_sets_event_and_stops_hotkey(app: App) -> None:
     assert app._shutdown_event.is_set()
     app._hotkey_mock.stop.assert_called_once()
     app._capture_mock.stop.assert_called_once()
+
+
+def test_is_running_reflects_state(app: App) -> None:
+    """is_running should reflect the internal running flag."""
+    app._running = False
+    assert app.is_running() is False
+
+    app._running = True
+    assert app.is_running() is True
 
 
 def test_start_loop_exits_after_stop(app: App) -> None:

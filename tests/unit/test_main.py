@@ -113,47 +113,80 @@ def test_apply_cli_overrides_leaves_none_args_untouched() -> None:
     assert settings.model_dump() == original
 
 
-def test_main_loads_env_from_config(tmp_path) -> None:
-    """Main should load .env from --config, create App, and call start."""
+@pytest.fixture
+def main_mocks(tmp_path):
+    """Return shared mocks for main() Qt/lifecycle tests."""
+    mock_app = MagicMock()
+    mock_qapp = MagicMock()
+    mock_qapp.exec.return_value = 42
+    mock_thread = MagicMock()
+    mock_worker = MagicMock()
+    mock_tray = MagicMock()
+
     env_file = tmp_path / "custom.env"
     env_file.write_text("ASR_MODEL=small\n")
-
-    mock_app = MagicMock()
 
     with (
         patch("src.main.Settings") as mock_settings_cls,
         patch("src.main.configure_logging"),
         patch("src.main.App", return_value=mock_app) as mock_app_cls,
+        patch("src.main.QApplication", return_value=mock_qapp) as mock_qapp_cls,
+        patch("src.main.TrayIcon", return_value=mock_tray) as mock_tray_cls,
+        patch("src.main.QThread", return_value=mock_thread) as mock_qthread_cls,
+        patch("src.main._Worker", return_value=mock_worker) as mock_worker_cls,
     ):
         mock_settings = MagicMock()
         mock_settings.data_dir = tmp_path / "data"
         mock_settings.model_dump.return_value = {}
         mock_settings_cls.return_value = mock_settings
 
-        result = main(["--config", str(env_file)])
+        yield {
+            "settings": mock_settings,
+            "settings_cls": mock_settings_cls,
+            "app": mock_app,
+            "app_cls": mock_app_cls,
+            "qapp": mock_qapp,
+            "qapp_cls": mock_qapp_cls,
+            "tray": mock_tray,
+            "tray_cls": mock_tray_cls,
+            "thread": mock_thread,
+            "qthread_cls": mock_qthread_cls,
+            "worker": mock_worker,
+            "worker_cls": mock_worker_cls,
+            "env_file": env_file,
+        }
 
-    assert result == 0
-    mock_settings_cls.assert_called_once()
-    _, kwargs = mock_settings_cls.call_args
-    assert kwargs["_env_file"] == str(env_file)
-    mock_app_cls.assert_called_once_with(mock_settings)
-    mock_app.start.assert_called_once()
+
+def test_main_loads_env_from_config(main_mocks) -> None:
+    """Main should load .env, create Qt/App/Tray objects, start worker, and exec."""
+    mocks = main_mocks
+
+    result = main(["--config", str(mocks["env_file"])])
+
+    assert result == 42
+    mocks["settings_cls"].assert_called_once()
+    _, kwargs = mocks["settings_cls"].call_args
+    assert kwargs["_env_file"] == str(mocks["env_file"])
+
+    mocks["qapp_cls"].assert_called_once()
+    mocks["app_cls"].assert_called_once_with(mocks["settings"])
+    mocks["tray_cls"].assert_called_once_with(mocks["app"], mocks["settings"])
+    mocks["tray"].show.assert_called_once()
+    mocks["worker_cls"].assert_called_once_with(mocks["app"])
+    mocks["qthread_cls"].assert_called_once()
+    mocks["thread"].start.assert_called_once()
+    mocks["qapp"].exec.assert_called_once()
 
 
-def test_main_returns_one_on_unhandled_exception() -> None:
-    """Main should return exit code 1 on an unhandled exception."""
-    with (
-        patch("src.main.Settings") as mock_settings_cls,
-        patch("src.main.configure_logging"),
-        patch("src.main.App") as mock_app_cls,
-    ):
-        mock_settings = MagicMock()
-        mock_settings.data_dir = MagicMock()
-        mock_settings.model_dump.return_value = {}
-        mock_settings_cls.return_value = mock_settings
-        mock_app_cls.return_value.start.side_effect = RuntimeError("boom")
+def test_main_quit_handler_stops_app_and_thread(main_mocks) -> None:
+    """The aboutToQuit handler should stop App and the background QThread."""
+    mocks = main_mocks
 
-        result = main([])
+    main(["--config", str(mocks["env_file"])])
 
-    assert result == 1
-    mock_app_cls.assert_called_once()
+    connected = mocks["qapp"].aboutToQuit.connect.call_args[0][0]
+    connected()
+
+    mocks["app"].stop.assert_called_once()
+    mocks["thread"].quit.assert_called_once()
+    mocks["thread"].wait.assert_called_once_with(5000)

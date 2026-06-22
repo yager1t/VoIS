@@ -23,5 +23,8 @@ pyperclip>=1.8
 # LLM post-processing client
 httpx>=0.27
 
+# System tray / settings UI
+PyQt6>=6.6
+
 # Install CPU-only torch to avoid large GPU downloads:
 # pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cpu

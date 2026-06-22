@@ -19,6 +19,7 @@ dependencies = [
     "pynput>=1.7",
     "pyperclip>=1.8",
     "httpx>=0.27",
+    "PyQt6>=6.6",
 ]
 
 [project.optional-dependencies]
