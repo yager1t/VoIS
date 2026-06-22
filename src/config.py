@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     llm_enabled: bool = False
     llm_url: str = "http://localhost:11434"
 
+    # Text injection
+    injection_delay_ms: float = 0.0
+    injection_fallback_to_clipboard: bool = False
+
     # Paths
     data_dir: Path = Path("data")
     models_dir: Path = Path("models")

@@ -17,5 +17,8 @@ huggingface-hub>=0.20
 # Global hotkey listener
 pynput>=1.7
 
+# Clipboard fallback for text injection
+pyperclip>=1.8
+
 # Install CPU-only torch to avoid large GPU downloads:
 # pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cpu

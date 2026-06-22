@@ -17,6 +17,7 @@ dependencies = [
     "torch>=2.0",
     "huggingface-hub>=0.20",
     "pynput>=1.7",
+    "pyperclip>=1.8",
 ]
 
 [project.optional-dependencies]

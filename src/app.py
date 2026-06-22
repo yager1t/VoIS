@@ -7,12 +7,15 @@ from typing import TYPE_CHECKING
 import numpy as np
 from loguru import logger
 
+from src.audio.buffer import AudioBuffer
 from src.audio.capture import AudioCapture
 from src.config import Settings
 from src.hotkey import create_hotkey_manager
+from src.injection import WindowsTextInjector, create_text_injector
 
 if TYPE_CHECKING:  # pragma: no cover
     from src.asr.base import ASRProvider
+    from src.injection.base import TextInjector
 
 
 class App:
@@ -27,6 +30,11 @@ class App:
         self.settings = settings
         self._running = False
         self.capture = AudioCapture(settings)
+        self.buffer = AudioBuffer()
+        self.capture.set_callback(self.buffer.append)
+        self.injector: TextInjector = create_text_injector()
+        if isinstance(self.injector, WindowsTextInjector):
+            self.injector.fallback_to_clipboard = settings.injection_fallback_to_clipboard
         self._asr: ASRProvider | None = None
         self.hotkey = create_hotkey_manager(
             settings.hotkey,
@@ -73,12 +81,34 @@ class App:
     def start_recording(self) -> None:
         """Start audio recording when the hotkey is pressed."""
         logger.info("Start recording requested")
+        self.buffer.clear()
         self.capture.start()
 
     def stop_recording(self) -> None:
-        """Stop audio recording when the hotkey is released."""
+        """Stop audio recording, transcribe, and inject the result."""
         logger.info("Stop recording requested")
         self.capture.stop()
+
+        audio = self.buffer.get()
+        self.buffer.clear()
+        if audio.size == 0:
+            logger.info("No audio captured; nothing to inject")
+            return
+
+        text = self.transcribe_audio(audio)
+        logger.info("Transcribed text to inject: {}", text)
+        self.inject_text(text)
+
+    def inject_text(self, text: str) -> None:
+        """Inject the given text at the current cursor position.
+
+        Args:
+            text: Text to type or paste.
+        """
+        if not text:
+            return
+        self.injector.inject_with_delay(text, self.settings.injection_delay_ms)
+        logger.info("Injected {} character(s)", len(text))
 
     def transcribe_audio(self, audio: np.ndarray) -> str:
         """Transcribe audio and return the recognized text.
