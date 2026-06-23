@@ -173,7 +173,4 @@ def frame_audio(audio: np.ndarray, sample_rate: int, *, frame_ms: int = 30) -> l
     frame_size = int(sample_rate * frame_ms / 1000)
     samples = np.asarray(audio, dtype=np.float32)
     total_frames = samples.shape[0] // frame_size
-    return [
-        samples[i * frame_size : (i + 1) * frame_size]
-        for i in range(total_frames)
-    ]
+    return [samples[i * frame_size : (i + 1) * frame_size] for i in range(total_frames)]

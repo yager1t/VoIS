@@ -55,12 +55,18 @@ class ASRProvider(ABC):
         """
 
     @abstractmethod
-    def transcribe(self, audio: np.ndarray, sample_rate: int) -> TranscriptionResult:
+    def transcribe(
+        self,
+        audio: np.ndarray,
+        sample_rate: int,
+        beam_size: int | None = None,
+    ) -> TranscriptionResult:
         """Transcribe a complete audio clip into text.
 
         Args:
             audio: One-dimensional ``float32`` audio samples in the range ``[-1, 1]``.
             sample_rate: Sample rate of ``audio`` in Hz.
+            beam_size: Optional decoding beam size override.
 
         Returns:
             A ``TranscriptionResult`` containing the recognized text.
@@ -71,6 +77,7 @@ class ASRProvider(ABC):
         self,
         audio_chunk: np.ndarray,
         sample_rate: int,
+        beam_size: int | None = None,
     ) -> TranscriptionResult:
         """Process a streaming audio chunk and return an incremental result.
 
@@ -80,6 +87,7 @@ class ASRProvider(ABC):
         Args:
             audio_chunk: One-dimensional ``float32`` audio samples.
             sample_rate: Sample rate of ``audio_chunk`` in Hz.
+            beam_size: Optional streaming decoding beam size override.
 
         Returns:
             A ``TranscriptionResult`` with incremental or final text.

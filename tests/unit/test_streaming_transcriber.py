@@ -30,7 +30,7 @@ def settings(tmp_path) -> Settings:
 def mock_asr() -> MagicMock:
     """Return a mock ASR provider that returns deterministic text."""
     provider = MagicMock()
-    provider.transcribe.return_value = TranscriptionResult(
+    provider.transcribe_streaming.return_value = TranscriptionResult(
         text="hello",
         is_final=True,
         confidence=0.9,
@@ -77,7 +77,7 @@ def test_audio_chunks_accumulate_and_transcribe(
     results = transcriber.get_results()
     assert len(results) >= 1
     assert results[-1].text == "hello"
-    mock_asr.transcribe.assert_called()
+    mock_asr.transcribe_streaming.assert_called()
 
 
 def test_results_queued_with_is_final_false(
@@ -116,7 +116,7 @@ def test_stop_flushes_remaining_audio(
     results = transcriber.get_results()
     assert len(results) >= 1
     assert results[-1].is_final is True
-    mock_asr.transcribe.assert_called()
+    mock_asr.transcribe_streaming.assert_called()
 
 
 def test_silence_pause_marks_result_final(
@@ -161,7 +161,7 @@ def test_no_speech_does_not_queue_result(
 
     results = transcriber.get_results()
     assert len(results) == 0
-    mock_asr.transcribe.assert_not_called()
+    mock_asr.transcribe_streaming.assert_not_called()
 
 
 def test_add_audio_before_start(
@@ -189,3 +189,48 @@ def test_stop_is_idempotent(transcriber: StreamingTranscriber) -> None:
     transcriber.stop()
 
     assert transcriber.get_results() == []
+
+
+def test_streaming_uses_streaming_beam_size(
+    settings: Settings,
+    mock_asr: MagicMock,
+    mock_vad: MagicMock,
+) -> None:
+    """Chunk transcription should use the configured streaming beam size."""
+    settings.asr_streaming_beam_size = 3
+    transcriber = StreamingTranscriber(settings, mock_asr, mock_vad)
+    transcriber.streaming_chunk_seconds = 1.0
+    transcriber.loop_interval_seconds = 0.01
+    transcriber.start()
+
+    try:
+        transcriber.add_audio(np.ones(CHUNK_SAMPLES, dtype=np.float32))
+        time.sleep(0.15)
+    finally:
+        transcriber.stop()
+
+    assert mock_asr.transcribe_streaming.call_count >= 1
+    audio, sample_rate = mock_asr.transcribe_streaming.call_args_list[0].args
+    assert audio.shape == (CHUNK_SAMPLES,)
+    assert sample_rate == SAMPLE_RATE
+    assert mock_asr.transcribe_streaming.call_args_list[0].kwargs["beam_size"] == 3
+
+
+def test_stop_flush_uses_streaming_beam_size(
+    settings: Settings,
+    mock_asr: MagicMock,
+    mock_vad: MagicMock,
+) -> None:
+    """Flush transcription should use the configured streaming beam size."""
+    settings.asr_streaming_beam_size = 4
+    transcriber = StreamingTranscriber(settings, mock_asr, mock_vad)
+    transcriber.streaming_chunk_seconds = 5.0
+
+    transcriber.add_audio(np.ones(CHUNK_SAMPLES // 2, dtype=np.float32))
+    transcriber.stop()
+
+    mock_asr.transcribe_streaming.assert_called_once()
+    audio, sample_rate = mock_asr.transcribe_streaming.call_args.args
+    assert audio.shape == (CHUNK_SAMPLES // 2,)
+    assert sample_rate == SAMPLE_RATE
+    assert mock_asr.transcribe_streaming.call_args.kwargs["beam_size"] == 4

@@ -116,7 +116,12 @@ class MockASRProvider(ASRProvider):
     def warmup(self) -> None:
         """No-op for the mock provider."""
 
-    def transcribe(self, audio: np.ndarray, sample_rate: int) -> TranscriptionResult:  # noqa: ARG002
+    def transcribe(
+        self,
+        audio: np.ndarray,
+        sample_rate: int,
+        beam_size: int | None = None,  # noqa: ARG002
+    ) -> TranscriptionResult:  # noqa: ARG002
         """Return deterministic text after a short sleep."""
         self.call_count += 1
         time.sleep(self.sleep_per_chunk)
@@ -131,9 +136,10 @@ class MockASRProvider(ASRProvider):
         self,
         audio_chunk: np.ndarray,
         sample_rate: int,
+        beam_size: int | None = None,
     ) -> TranscriptionResult:
         """Delegate to :meth:`transcribe`."""
-        return self.transcribe(audio_chunk, sample_rate)
+        return self.transcribe(audio_chunk, sample_rate, beam_size=beam_size)
 
 
 class _TimedASRProvider(ASRProvider):
@@ -163,19 +169,31 @@ class _TimedASRProvider(ASRProvider):
         """Delegate warmup."""
         self._delegate.warmup()
 
-    def transcribe(self, audio: np.ndarray, sample_rate: int) -> TranscriptionResult:
+    def transcribe(
+        self,
+        audio: np.ndarray,
+        sample_rate: int,
+        beam_size: int | None = None,
+    ) -> TranscriptionResult:
         """Record first-call latency and delegate transcription."""
         if self.first_call_elapsed is None:
             self.first_call_elapsed = time.perf_counter() - self._start
-        return self._delegate.transcribe(audio, sample_rate)
+        return self._delegate.transcribe(audio, sample_rate, beam_size=beam_size)
 
     def transcribe_streaming(
         self,
         audio_chunk: np.ndarray,
         sample_rate: int,
+        beam_size: int | None = None,
     ) -> TranscriptionResult:
         """Delegate streaming transcription."""
-        return self._delegate.transcribe_streaming(audio_chunk, sample_rate)
+        if self.first_call_elapsed is None:
+            self.first_call_elapsed = time.perf_counter() - self._start
+        return self._delegate.transcribe_streaming(
+            audio_chunk,
+            sample_rate,
+            beam_size=beam_size,
+        )
 
 
 class LatencyBenchmark:

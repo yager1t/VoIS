@@ -74,10 +74,7 @@ class VocabularyStorage:
             self._ensure_default_file(path, source, context)
 
         data = json.loads(path.read_text(encoding="utf-8"))
-        return [
-            self._entry_from_dict(item, source)
-            for item in data.get("entries", [])
-        ]
+        return [self._entry_from_dict(item, source) for item in data.get("entries", [])]
 
     def save(
         self,

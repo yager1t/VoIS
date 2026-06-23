@@ -107,9 +107,7 @@ class FasterWhisperProvider(ASRProvider):
             return TranscriptionResult(text="")
 
         language = (
-            self.settings.asr_language
-            if self.settings.asr_language.lower() != "auto"
-            else None
+            self.settings.asr_language if self.settings.asr_language.lower() != "auto" else None
         )
 
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
@@ -119,11 +117,7 @@ class FasterWhisperProvider(ASRProvider):
             sf.write(tmp_path, samples, sample_rate)
             transcribe_kwargs: dict[str, object] = {
                 "language": language,
-                "beam_size": (
-                    beam_size
-                    if beam_size is not None
-                    else self.settings.asr_beam_size
-                ),
+                "beam_size": (beam_size if beam_size is not None else self.settings.asr_beam_size),
                 "condition_on_previous_text": True,
             }
 
@@ -168,6 +162,7 @@ class FasterWhisperProvider(ASRProvider):
         self,
         audio_chunk: np.ndarray,
         sample_rate: int,
+        beam_size: int | None = None,
     ) -> TranscriptionResult:
         """Return a final transcription for a streaming chunk.
 
@@ -176,11 +171,16 @@ class FasterWhisperProvider(ASRProvider):
         Args:
             audio_chunk: One-dimensional ``float32`` audio samples.
             sample_rate: Sample rate of ``audio_chunk`` in Hz.
+            beam_size: Beam size override. When ``None``, the value from
+                ``settings.asr_streaming_beam_size`` is used.
 
         Returns:
             A ``TranscriptionResult`` with final text for the chunk.
         """
-        result = self.transcribe(audio_chunk, sample_rate)
+        streaming_beam_size = (
+            beam_size if beam_size is not None else self.settings.asr_streaming_beam_size
+        )
+        result = self.transcribe(audio_chunk, sample_rate, beam_size=streaming_beam_size)
         return TranscriptionResult(
             text=result.text,
             is_final=True,

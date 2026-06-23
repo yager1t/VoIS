@@ -23,8 +23,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
       - name: Lint
-        run: ruff check src tests
+        run: ruff check src tests benchmarks
       - name: Type check
         run: mypy src
       - name: Unit and integration tests with coverage
-        run: pytest tests/unit tests/integration -m "not smoke and not slow and not requires_model" --cov=src --cov-report=term-missing --timeout=60
+        run: pytest tests/unit tests/integration -m "not smoke and not slow and not requires_model" --cov=src --cov=benchmarks --cov-report=term-missing --timeout=60

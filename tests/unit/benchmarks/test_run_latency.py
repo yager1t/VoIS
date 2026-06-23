@@ -89,14 +89,16 @@ def test_main_batch_mode() -> None:
 def test_main_streaming_mode() -> None:
     """``main`` must print a JSON summary for streaming mode."""
     with patch("sys.stdout", new_callable=StringIO) as mock_stdout:
-        code = run_latency.main([
-            "--mode",
-            "streaming",
-            "--duration",
-            "0.2",
-            "--chunk-seconds",
-            "0.1",
-        ])
+        code = run_latency.main(
+            [
+                "--mode",
+                "streaming",
+                "--duration",
+                "0.2",
+                "--chunk-seconds",
+                "0.1",
+            ]
+        )
 
     assert code == 0
     summary = json.loads(mock_stdout.getvalue())

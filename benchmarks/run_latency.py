@@ -53,8 +53,7 @@ def load_audio(wav_path: Path, sample_rate: int) -> np.ndarray:
         audio = audio.mean(axis=1)
     if file_rate != sample_rate:
         raise ValueError(
-            f"Sample rate mismatch: {wav_path} is {file_rate} Hz, "
-            f"expected {sample_rate} Hz",
+            f"Sample rate mismatch: {wav_path} is {file_rate} Hz, expected {sample_rate} Hz",
         )
     return np.asarray(audio, dtype=np.float32)
 

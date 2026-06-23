@@ -2,7 +2,7 @@
 
 ![CI](https://github.com/yager1t/VoIS/actions/workflows/ci.yml/badge.svg)
 
-Local-first Windows desktop dictation: press a global hotkey, speak, and get clean text inserted at the current cursor position.
+Local-first Windows desktop dictation with faster-whisper ASR, streaming transcription, vocabulary correction, optional local LLM cleanup, and cursor text injection.
 
 - Push-to-talk or toggle recording modes.
 - Silence trimming with WebRTC VAD.
@@ -52,10 +52,11 @@ Streaming is off by default. Enable it through **Settings → Streaming ASR** or
 ```env
 STREAMING_ENABLED=true
 STREAMING_CHUNK_SECONDS=1.0
+ASR_STREAMING_BEAM_SIZE=1
 ASR_WARMUP_AT_START=true
 ```
 
-When streaming is enabled, partial transcripts appear while you hold the hotkey. After release, a background final transcription can refine the result.
+When streaming is enabled, partial transcripts appear while you hold the hotkey. Streaming chunks use `ASR_STREAMING_BEAM_SIZE`; after release, a background final transcription can refine the result with the normal final-pass ASR settings.
 
 ## CLI options
 
@@ -137,12 +138,13 @@ See [`docs/architecture.md`](docs/architecture.md) for a high-level overview.
 ## Development
 
 ```bash
-ruff check src tests
+ruff check src tests benchmarks
 mypy src
 pytest tests/unit tests/integration -m "not smoke and not slow and not requires_model" --cov=src --cov=benchmarks --timeout=60
 ```
 
-The project currently has **279 unit tests**, **7 integration tests**, and **1 smoke test** (287 total) with **93.40% code coverage**.
+The safe unit and integration suite currently has **290 passing tests** with
+**92.64% code coverage**. The automated smoke suite has **1 passing smoke test**.
 
 AI assistants should read [`docs/ai_working_guide.md`](docs/ai_working_guide.md)
 before running commands or editing code. The guide documents the safe test

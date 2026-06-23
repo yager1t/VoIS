@@ -182,9 +182,7 @@ class WindowsTextInjector(TextInjector):
             )
 
         arr = (INPUT * len(inputs))(*inputs)
-        sent = ctypes.windll.user32.SendInput(
-            len(inputs), ctypes.byref(arr), ctypes.sizeof(INPUT)
-        )
+        sent = ctypes.windll.user32.SendInput(len(inputs), ctypes.byref(arr), ctypes.sizeof(INPUT))
         if sent != len(inputs):
             logger.warning("SendInput returned {} instead of {}", sent, len(inputs))
 

@@ -32,7 +32,8 @@ background `QThread`, while the main thread owns `QApplication` and the `QSystem
    Each incoming chunk is routed to both the buffer and the streaming transcriber. The
    transcriber runs in a background thread, uses VAD to detect speech, and emits
    incremental `TranscriptionResult`s; a silence pause marks the latest partial result
-   final, and any remaining audio is flushed as a final result on stop.
+   final, and any remaining audio is flushed as a final result on stop. Streaming
+   chunk decoding uses the dedicated `asr_streaming_beam_size` setting.
 5. On release, `App` stops capture. In streaming mode it stops the transcriber,
    concatenates all final streaming results, and uses that text when non-empty. If the
    streaming transcript is empty, it falls back to the legacy flow: VAD-based silence
@@ -61,6 +62,8 @@ CLI entry point. Parses arguments, loads `Settings` from environment/`.env`, app
 Application orchestrator. Owns the hotkey manager, audio capture, buffer, VAD provider, ASR provider, and text injector. Implements both push-to-talk and toggle modes. Exposes optional callback attributes (`recording_started`, `recording_stopped`, `text_injected`) so the tray UI can react to pipeline events without making `App` depend on Qt.
 
 ### `src/ui/`
+- `__init__.py` — exposes UI classes via lazy package attributes so importing one
+  widget module does not eagerly import every Qt dependency.
 - `tray.py` — `TrayIcon` is a `QSystemTrayIcon` with a context menu (Start/Stop toggle, Settings, Add correction, Exit) and a recording-state indicator. It exposes thread-safe `set_recording(recording)` and `notify(title, message)` methods that emit Qt signals; the corresponding slots update the tray icon and show balloon notifications. The "Add correction..." action records a user correction through the application orchestrator for adaptive learning.
 - `settings_window.py` — `SettingsWindow` is a `QWidget` form for editing hotkey, push-to-talk, ASR model, language, device, LLM options, dry-run mode, context mode, dictionary enabling, and vocabulary learning. On save it writes the current configuration back to the project `.env` file and emits `settings_saved`.
 - `vocab_editor.py` — `VocabularyEditor` is a `QDialog` that shows all loaded vocabulary entries and lets the user add, edit, and remove user-level terms, which are persisted to `data/vocab/user.json`.
@@ -80,8 +83,8 @@ Loguru configuration with console and rotating file sinks.
 ### `src/asr/`
 - `base.py` — `ASRProvider` interface and `TranscriptionResult` dataclass.
 - `model_manager.py` — `ModelManager` resolves model paths and handles downloads. Model download and instantiation are wrapped in patchable functions (`_download_model`, `_create_whisper_model`) so unit tests can avoid importing heavy ML packages.
-- `whisper_provider.py` — `FasterWhisperProvider` transcribes audio via `faster-whisper`. The model is lazy-loaded. It exposes `warmup()` to force model load by transcribing one second of silence, and `transcribe(..., beam_size)` accepts an optional beam-size override for streaming.
-- `streaming.py` — `StreamingTranscriber` runs a background thread that consumes audio chunks from a `StreamingAudioBuffer`, runs VAD, and emits incremental `TranscriptionResult`s via a queue. Silence pauses mark partial results final, and remaining audio is flushed as a final result on stop.
+- `whisper_provider.py` — `FasterWhisperProvider` transcribes audio via `faster-whisper`. The model is lazy-loaded. It exposes `warmup()` to force model load by transcribing one second of silence. `transcribe(..., beam_size)` accepts final-pass beam-size overrides, while `transcribe_streaming(..., beam_size)` defaults to `settings.asr_streaming_beam_size`.
+- `streaming.py` — `StreamingTranscriber` runs a background thread that consumes audio chunks from a `StreamingAudioBuffer`, runs VAD, and emits incremental `TranscriptionResult`s via a queue. Silence pauses mark partial results final, remaining audio is flushed as a final result on stop, and streaming ASR calls use the dedicated streaming beam size.
 
 ### `src/hotkey/`
 - `base.py` — `HotkeyManager` interface and `parse_hotkey` helper.

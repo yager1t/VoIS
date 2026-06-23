@@ -95,7 +95,7 @@ pytest tests/ -m requires_model --timeout=300
 
 ## Current coverage
 
-Coverage captured on 2026-06-22 after completing Phase 6 of v0.4 (final integration, documentation, and version bump).
+Coverage captured on 2026-06-23 after checklist verification and fixes.
 
 | Name                              | Stmts | Miss | Branch | BrPart | Cover |
 |-----------------------------------|------:|-----:|-------:|-------:|------:|
@@ -106,15 +106,15 @@ Coverage captured on 2026-06-22 after completing Phase 6 of v0.4 (final integrat
 | `src\asr\base.py`                 |    22 |    0 |      0 |      0 |  100% |
 | `src\asr\final_transcriber.py`    |    47 |    3 |      8 |      1 |   93% |
 | `src\asr\model_manager.py`        |    38 |    4 |      8 |      0 |   91% |
-| `src\asr\streaming.py`            |    93 |    4 |     24 |      2 |   95% |
-| `src\asr\whisper_provider.py`     |    71 |    0 |     16 |      2 |   98% |
+| `src\asr\streaming.py`            |    94 |    4 |     24 |      2 |   95% |
+| `src\asr\whisper_provider.py`     |    72 |    0 |     16 |      2 |   98% |
 | `src\audio\__init__.py`           |     4 |    0 |      0 |      0 |  100% |
 | `src\audio\buffer.py`             |    51 |    5 |     16 |      4 |   87% |
 | `src\audio\capture.py`            |    77 |    1 |     20 |      2 |   97% |
 | `src\audio\streaming_buffer.py`   |    49 |    0 |     12 |      0 |  100% |
 | `src\audio\vad.py`                |    59 |    0 |     18 |      0 |  100% |
 | `src\benchmarks\__init__.py`      |     0 |    0 |      0 |      0 |  100% |
-| `src\benchmarks\latency.py`       |   115 |    4 |     14 |      0 |   97% |
+| `src\benchmarks\latency.py`       |   117 |    5 |     16 |      1 |   94% |
 | `src\config.py`                   |    41 |    0 |      0 |      0 |  100% |
 | `src\dictionary\__init__.py`      |     7 |    0 |      0 |      0 |  100% |
 | `src\dictionary\base.py`          |    19 |    0 |      0 |      0 |  100% |
@@ -136,20 +136,21 @@ Coverage captured on 2026-06-22 after completing Phase 6 of v0.4 (final integrat
 | `src\postprocess\base.py`         |     5 |    0 |      0 |      0 |  100% |
 | `src\postprocess\formatter.py`    |    13 |    0 |      4 |      0 |  100% |
 | `src\postprocess\llm_client.py`   |    27 |    0 |      0 |      0 |  100% |
-| `src\ui\__init__.py`              |     5 |    0 |      0 |      0 |  100% |
+| `src\ui\__init__.py`              |    14 |   10 |      6 |      0 |   20% |
 | `src\ui\settings_window.py`       |   141 |    1 |     10 |      1 |   99% |
 | `src\ui\tray.py`                  |    79 |    1 |     18 |      4 |   95% |
 | `src\ui\vocab_editor.py`          |   114 |    9 |     26 |      9 |   87% |
-| **TOTAL**                         | **1986** | **90** | **440** | **64** | **93%** |
+| **TOTAL**                         | **1999** | **101** | **448** | **65** | **93%** |
 
-The overall code coverage is **93.40%**, exceeding the configured `fail_under = 80`
-threshold. There are **279 unit tests**, **7 integration tests**, and **1 smoke
-test (287 total); the safe suites complete in under five seconds.
+The overall code coverage is **92.64%**, exceeding the configured `fail_under = 80`
+threshold. The safe unit and integration suite has **290 passing tests**; the
+automated smoke suite has **1 passing smoke test**.
 
 ## CI
 
 Continuous integration is configured in `.github/workflows/ci.yml`. The workflow
-runs on pushes and pull requests to `master` and `main`, linting with `ruff`,
-type-checking with `mypy`, and executing the unit and integration test suites
-with coverage on Python 3.11 and 3.12. Smoke tests are not run in CI because they
-require the `--run-smoke` opt-in flag.
+runs on pushes and pull requests to `master` and `main`, linting `src`, `tests`,
+and `benchmarks` with `ruff`, type-checking `src` with `mypy`, and executing the
+unit and integration test suites with coverage for both `src` and `benchmarks`
+on Python 3.11 and 3.12. Smoke tests are not run in CI because they require the
+`--run-smoke` opt-in flag.

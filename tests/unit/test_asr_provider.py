@@ -137,6 +137,35 @@ def test_streaming_delegates_to_transcribe(settings: Settings) -> None:
     assert result.is_final is True
 
 
+def test_streaming_uses_streaming_beam_size(settings: Settings, fake_model: MagicMock) -> None:
+    """Streaming transcription should use the dedicated streaming beam size."""
+    settings.asr_beam_size = 7
+    settings.asr_streaming_beam_size = 2
+    provider = FasterWhisperProvider(settings)
+
+    with patch.object(provider, "_model", fake_model):
+        provider.transcribe_streaming(np.zeros(SAMPLE_RATE // 2, dtype=np.float32), SAMPLE_RATE)
+
+    _, kwargs = fake_model.transcribe.call_args
+    assert kwargs["beam_size"] == 2
+
+
+def test_streaming_beam_size_override(settings: Settings, fake_model: MagicMock) -> None:
+    """Explicit streaming beam size should override the setting."""
+    settings.asr_streaming_beam_size = 2
+    provider = FasterWhisperProvider(settings)
+
+    with patch.object(provider, "_model", fake_model):
+        provider.transcribe_streaming(
+            np.zeros(SAMPLE_RATE // 2, dtype=np.float32),
+            SAMPLE_RATE,
+            beam_size=4,
+        )
+
+    _, kwargs = fake_model.transcribe.call_args
+    assert kwargs["beam_size"] == 4
+
+
 def test_load_model_caches_model(settings: Settings) -> None:
     """load_model should only instantiate the model once."""
     provider = FasterWhisperProvider(settings)

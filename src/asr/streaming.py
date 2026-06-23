@@ -48,6 +48,7 @@ class StreamingTranscriber:
 
         self.sample_rate = settings.audio_sample_rate
         self.streaming_chunk_seconds = getattr(settings, "streaming_chunk_seconds", 1.0)
+        self.asr_streaming_beam_size = getattr(settings, "asr_streaming_beam_size", None)
         self.silence_pause_seconds = getattr(settings, "streaming_silence_pause_seconds", 0.5)
         self.loop_interval_seconds = 0.1
 
@@ -123,7 +124,11 @@ class StreamingTranscriber:
         self._buffer.commit(chunk_samples)
 
         if is_speech:
-            result = self.asr_provider.transcribe(audio, self.sample_rate)
+            result = self.asr_provider.transcribe_streaming(
+                audio,
+                self.sample_rate,
+                beam_size=self.asr_streaming_beam_size,
+            )
             result.is_final = False
             self._results.put(result)
             with self._lock:
@@ -170,6 +175,10 @@ class StreamingTranscriber:
             self._finalize_last_result()
             return
 
-        result = self.asr_provider.transcribe(audio, self.sample_rate)
+        result = self.asr_provider.transcribe_streaming(
+            audio,
+            self.sample_rate,
+            beam_size=self.asr_streaming_beam_size,
+        )
         result.is_final = True
         self._results.put(result)

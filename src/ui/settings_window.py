@@ -60,8 +60,7 @@ def _write_env_file(env_file: Path, settings: Settings) -> None:
         settings: Settings to serialize.
     """
     lines = [
-        _serialize_env_value(key.upper(), value)
-        for key, value in settings.model_dump().items()
+        _serialize_env_value(key.upper(), value) for key, value in settings.model_dump().items()
     ]
     env_file.write_text("\n".join(lines) + "\n", encoding="utf-8")
 

@@ -679,9 +679,7 @@ def test_warmup_triggered_at_start(settings: Settings, mock_vad: MagicMock) -> N
 
     with (
         _build_app(settings, mock_vad, warmup=True) as app,
-        patch(
-            "src.app.threading.Thread", side_effect=_tracking_thread
-        ) as thread_mock,
+        patch("src.app.threading.Thread", side_effect=_tracking_thread) as thread_mock,
     ):
         _ = _mock_asr(app)
 

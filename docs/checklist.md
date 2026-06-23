@@ -34,7 +34,7 @@ mypy src
 
 ```bash
 pytest tests/unit tests/integration \
-  -m "not smoke and not slow and not integration and not requires_model" \
+  -m "not smoke and not slow and not requires_model" \
   --cov=src --cov=benchmarks --cov-report=term-missing \
   --timeout=60
 ```
@@ -78,7 +78,7 @@ pytest tests/unit tests/integration \
 
 ### 4.4. Юнит-тесты
 
-- [ ] `tests/unit/asr/test_streaming.py` проходит
+- [ ] `tests/unit/test_streaming_transcriber.py` проходит
 - [ ] `tests/unit/asr/test_final_transcriber.py` проходит
 - [ ] `tests/unit/test_app.py` проверяет новые callback'и и настройки
 

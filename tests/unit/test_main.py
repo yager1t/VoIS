@@ -137,9 +137,7 @@ def main_mocks(tmp_path):
         patch(
             "src.main.SettingsWindow", return_value=mock_settings_window
         ) as mock_settings_window_cls,
-        patch(
-            "src.main.VocabularyEditor", return_value=mock_vocab_editor
-        ) as mock_vocab_editor_cls,
+        patch("src.main.VocabularyEditor", return_value=mock_vocab_editor) as mock_vocab_editor_cls,
         patch("src.main.QThread", return_value=mock_thread) as mock_qthread_cls,
         patch("src.main._Worker", return_value=mock_worker) as mock_worker_cls,
     ):

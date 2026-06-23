@@ -166,9 +166,7 @@ class App:
     def _concatenate_streaming_results(self, results: list[TranscriptionResult]) -> str:
         """Join final streaming results into a single transcript."""
         texts = [
-            result.text.strip()
-            for result in results
-            if result.is_final and result.text.strip()
+            result.text.strip() for result in results if result.is_final and result.text.strip()
         ]
         return " ".join(texts)
 

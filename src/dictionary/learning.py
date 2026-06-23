@@ -19,104 +19,106 @@ class VocabularyLearner:
     """Learn new vocabulary terms from user corrections and dictated text."""
 
     _TOKEN_PATTERN: re.Pattern[str] = re.compile(r"[a-zA-Z0-9']+")
-    _COMMON_WORDS: frozenset[str] = frozenset({
-        "the",
-        "and",
-        "for",
-        "are",
-        "but",
-        "not",
-        "you",
-        "all",
-        "can",
-        "had",
-        "her",
-        "was",
-        "one",
-        "our",
-        "out",
-        "day",
-        "get",
-        "has",
-        "him",
-        "his",
-        "how",
-        "man",
-        "new",
-        "now",
-        "old",
-        "see",
-        "two",
-        "way",
-        "who",
-        "boy",
-        "did",
-        "its",
-        "let",
-        "put",
-        "say",
-        "she",
-        "too",
-        "use",
-        "with",
-        "have",
-        "this",
-        "will",
-        "your",
-        "from",
-        "they",
-        "know",
-        "want",
-        "been",
-        "good",
-        "much",
-        "some",
-        "time",
-        "very",
-        "when",
-        "come",
-        "here",
-        "just",
-        "like",
-        "long",
-        "make",
-        "many",
-        "over",
-        "such",
-        "take",
-        "than",
-        "them",
-        "well",
-        "were",
-        "what",
-        "would",
-        "there",
-        "their",
-        "where",
-        "being",
-        "every",
-        "great",
-        "might",
-        "shall",
-        "still",
-        "those",
-        "while",
-        "about",
-        "could",
-        "other",
-        "after",
-        "first",
-        "never",
-        "these",
-        "think",
-        "under",
-        "water",
-        "hello",
-        "thank",
-        "please",
-        "dear",
-        "regards",
-    })
+    _COMMON_WORDS: frozenset[str] = frozenset(
+        {
+            "the",
+            "and",
+            "for",
+            "are",
+            "but",
+            "not",
+            "you",
+            "all",
+            "can",
+            "had",
+            "her",
+            "was",
+            "one",
+            "our",
+            "out",
+            "day",
+            "get",
+            "has",
+            "him",
+            "his",
+            "how",
+            "man",
+            "new",
+            "now",
+            "old",
+            "see",
+            "two",
+            "way",
+            "who",
+            "boy",
+            "did",
+            "its",
+            "let",
+            "put",
+            "say",
+            "she",
+            "too",
+            "use",
+            "with",
+            "have",
+            "this",
+            "will",
+            "your",
+            "from",
+            "they",
+            "know",
+            "want",
+            "been",
+            "good",
+            "much",
+            "some",
+            "time",
+            "very",
+            "when",
+            "come",
+            "here",
+            "just",
+            "like",
+            "long",
+            "make",
+            "many",
+            "over",
+            "such",
+            "take",
+            "than",
+            "them",
+            "well",
+            "were",
+            "what",
+            "would",
+            "there",
+            "their",
+            "where",
+            "being",
+            "every",
+            "great",
+            "might",
+            "shall",
+            "still",
+            "those",
+            "while",
+            "about",
+            "could",
+            "other",
+            "after",
+            "first",
+            "never",
+            "these",
+            "think",
+            "under",
+            "water",
+            "hello",
+            "thank",
+            "please",
+            "dear",
+            "regards",
+        }
+    )
 
     def __init__(self, vocab_manager: VocabularyManager, settings: Settings) -> None:
         """Initialize the learner.
@@ -168,19 +170,19 @@ class VocabularyLearner:
         counts: dict[tuple[str, str], int] = {}
         with self._lock, self._corrections_path.open("r", encoding="utf-8") as file:
             for line in file:
-                    line = line.strip()
-                    if not line:
-                        continue
-                    try:
-                        data = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-                    original = self._normalize_term(str(data.get("original", "")))
-                    corrected = str(data.get("corrected", ""))
-                    if not original or not corrected:
-                        continue
-                    key = (original, corrected)
-                    counts[key] = counts.get(key, 0) + 1
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    data = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+                original = self._normalize_term(str(data.get("original", "")))
+                corrected = str(data.get("corrected", ""))
+                if not original or not corrected:
+                    continue
+                key = (original, corrected)
+                counts[key] = counts.get(key, 0) + 1
 
         promoted: list[DictionaryEntry] = []
         for (original, corrected), count in counts.items():
@@ -321,9 +323,7 @@ class VocabularyLearner:
             self._term_counts = {}
             self._term_casings = {}
             return
-        self._term_counts = {
-            str(key): int(value) for key, value in data.get("counts", {}).items()
-        }
+        self._term_counts = {str(key): int(value) for key, value in data.get("counts", {}).items()}
         self._term_casings = {
             str(key): str(value) for key, value in data.get("casings", {}).items()
         }
