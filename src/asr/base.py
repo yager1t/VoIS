@@ -47,6 +47,14 @@ class ASRProvider(ABC):
         """
 
     @abstractmethod
+    def warmup(self) -> None:
+        """Force model load without real audio.
+
+        The default implementation is a no-op; providers that need eager model
+        loading can override it.
+        """
+
+    @abstractmethod
     def transcribe(self, audio: np.ndarray, sample_rate: int) -> TranscriptionResult:
         """Transcribe a complete audio clip into text.
 

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from contextlib import contextmanager
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -32,9 +34,15 @@ def mock_vad() -> MagicMock:
     return vad
 
 
-@pytest.fixture
-def app(settings: Settings, mock_vad: MagicMock) -> App:
-    """Return an App instance with mocked platform dependencies."""
+@contextmanager
+def _build_app(
+    settings: Settings,
+    mock_vad: MagicMock,
+    *,
+    streaming: bool = False,
+    warmup: bool = False,
+):
+    """Construct an App instance with mocked platform dependencies."""
 
     def _make_event() -> MagicMock:
         event_mock = MagicMock()
@@ -62,6 +70,7 @@ def app(settings: Settings, mock_vad: MagicMock) -> App:
         patch("src.app.VocabularyManager") as mock_vocab_cls,
         patch("src.app.TextCorrector") as mock_corrector_cls,
         patch("src.app.VocabularyLearner") as mock_learner_cls,
+        patch("src.app.StreamingTranscriber") as mock_streaming_cls,
     ):
         mock_hotkey = MagicMock()
         mock_hotkey_factory.return_value = mock_hotkey
@@ -78,6 +87,12 @@ def app(settings: Settings, mock_vad: MagicMock) -> App:
         mock_corrector_cls.return_value = mock_corrector
         mock_learner = MagicMock()
         mock_learner_cls.return_value = mock_learner
+        mock_streaming = MagicMock()
+        mock_streaming_cls.return_value = mock_streaming
+
+        settings.asr_warmup_at_start = warmup
+        if streaming:
+            settings.streaming_enabled = True
 
         app = App(settings)
         # Expose mocks for assertions
@@ -88,6 +103,22 @@ def app(settings: Settings, mock_vad: MagicMock) -> App:
         app._vocab_mock = mock_vocab
         app._corrector_mock = mock_corrector
         app._learner_mock = mock_learner
+        app._streaming_mock = mock_streaming
+        app._streaming_cls_mock = mock_streaming_cls
+        yield app
+
+
+@pytest.fixture
+def app(settings: Settings, mock_vad: MagicMock) -> App:
+    """Return an App instance with mocked platform dependencies."""
+    with _build_app(settings, mock_vad) as app:
+        yield app
+
+
+@pytest.fixture
+def streaming_app(settings: Settings, mock_vad: MagicMock) -> App:
+    """Return an App instance with streaming transcription enabled."""
+    with _build_app(settings, mock_vad, streaming=True) as app:
         yield app
 
 
@@ -422,3 +453,161 @@ def test_record_correction_delegates_to_learner(app: App) -> None:
     app.record_correction("foo", "bar")
 
     app._learner_mock.record_correction.assert_called_once_with("foo", "bar")
+
+
+def _mock_asr(app: App) -> MagicMock:
+    """Install a mock ASR provider on the app and return it."""
+    asr_mock = MagicMock()
+    app._asr = asr_mock
+    return asr_mock
+
+
+def test_capture_callback_routes_to_buffer_and_streamer(streaming_app: App) -> None:
+    """Audio chunks should reach both the buffer and the streaming transcriber."""
+    _mock_asr(streaming_app)
+    streaming_app.start_recording()
+    callback = streaming_app._capture_mock.set_callback.call_args.args[0]
+    chunk = np.ones(160, dtype=np.float32)
+
+    callback(chunk)
+
+    streaming_app._buffer_mock.append.assert_called_once_with(chunk)
+    streaming_app._streaming_mock.add_audio.assert_called_once_with(chunk)
+
+
+def test_start_recording_creates_streaming_transcriber(streaming_app: App) -> None:
+    """When streaming is enabled, start_recording creates and starts the transcriber."""
+    _mock_asr(streaming_app)
+    streaming_app.start_recording()
+
+    streaming_app._streaming_cls_mock.assert_called_once_with(
+        streaming_app.settings,
+        streaming_app.asr,
+        streaming_app.vad,
+    )
+    streaming_app._streaming_mock.start.assert_called_once()
+
+
+def test_stop_recording_uses_streaming_results(streaming_app: App) -> None:
+    """When streaming results exist, they are used instead of fallback transcription."""
+    from src.asr.base import TranscriptionResult
+
+    _mock_asr(streaming_app)
+    audio = np.ones(SAMPLE_RATE, dtype=np.float32)
+    streaming_app._buffer_mock.get.return_value = audio
+    streaming_app.vad.split_on_silence.return_value = [audio]
+    streaming_app._streaming_mock.get_results.return_value = [
+        TranscriptionResult(text="hello", is_final=True),
+        TranscriptionResult(text="world", is_final=True),
+    ]
+    streaming_app.post_processor.process = MagicMock(return_value="Hello world.")
+
+    streaming_app.start_recording()
+    streaming_app.stop_recording()
+
+    streaming_app._streaming_mock.stop.assert_called_once()
+    streaming_app._streaming_mock.get_results.assert_called_once()
+    streaming_app._asr.transcribe.assert_not_called()
+    streaming_app._injector_mock.inject_with_delay.assert_called_once_with(
+        "Hello world.",
+        streaming_app.settings.injection_delay_ms,
+    )
+
+
+def test_stop_recording_streaming_fallback_when_empty(streaming_app: App) -> None:
+    """When streaming yields no final text, fallback to full transcription."""
+    asr_mock = _mock_asr(streaming_app)
+    audio = np.ones(SAMPLE_RATE, dtype=np.float32)
+    streaming_app._buffer_mock.get.return_value = audio
+    streaming_app.vad.split_on_silence.return_value = [audio]
+    streaming_app._streaming_mock.get_results.return_value = []
+    asr_mock.transcribe.return_value.text = "fallback text"
+    streaming_app.post_processor.process = MagicMock(return_value="Fallback text.")
+
+    streaming_app.start_recording()
+    streaming_app.stop_recording()
+
+    asr_mock.transcribe.assert_called_once()
+    streaming_app._injector_mock.inject_with_delay.assert_called_once_with(
+        "Fallback text.",
+        streaming_app.settings.injection_delay_ms,
+    )
+
+
+def test_stop_recording_non_streaming_uses_existing_flow(app: App, settings: Settings) -> None:
+    """When streaming is disabled, stop_recording uses the existing transcription flow."""
+    asr_mock = _mock_asr(app)
+    audio = np.ones(SAMPLE_RATE, dtype=np.float32)
+    app._buffer_mock.get.return_value = audio
+    app.vad.split_on_silence.return_value = [audio]
+    asr_mock.transcribe.return_value.text = "non streaming text"
+    app.post_processor.process = MagicMock(return_value="Non streaming text.")
+
+    app.stop_recording()
+
+    asr_mock.transcribe.assert_called_once()
+    app._streaming_cls_mock.assert_not_called()
+    app._injector_mock.inject_with_delay.assert_called_once_with(
+        "Non streaming text.",
+        settings.injection_delay_ms,
+    )
+
+
+def _capture_thread(target: Callable[..., object], *args: object, **_kwargs: object) -> MagicMock:
+    """Capture thread construction details and return a dummy thread mock."""
+    thread_mock = MagicMock()
+    thread_mock._target = target
+    thread_mock._args = args
+    thread_mock.start.side_effect = lambda: target(*args)
+    return thread_mock
+
+
+def test_warmup_triggered_at_start(settings: Settings, mock_vad: MagicMock) -> None:
+    """When asr_warmup_at_start is true, warmup is started in a background thread."""
+    created_threads: list[MagicMock] = []
+
+    def _tracking_thread(
+        target: Callable[..., object], *args: object, **_kwargs: object
+    ) -> MagicMock:
+        thread_mock = _capture_thread(target, *args)
+        created_threads.append(thread_mock)
+        return thread_mock
+
+    with (
+        _build_app(settings, mock_vad, warmup=True) as app,
+        patch(
+            "src.app.threading.Thread", side_effect=_tracking_thread
+        ) as thread_mock,
+    ):
+        _ = _mock_asr(app)
+
+        app.start_recording()
+
+        thread_mock.assert_called_once()
+        assert len(created_threads) == 1
+        dummy_thread = created_threads[0]
+        dummy_thread.start.assert_called_once()
+        assert dummy_thread._target == app._warmup_asr
+        assert app._asr_warmed_up is True
+
+
+def test_warmup_runs_asr_warmup(settings: Settings, mock_vad: MagicMock) -> None:
+    """_warmup_asr should call asr.warmup() and mark warmup complete."""
+    with _build_app(settings, mock_vad) as app:
+        asr_mock = _mock_asr(app)
+
+        app._warmup_asr()
+
+        asr_mock.warmup.assert_called_once()
+        assert app._asr_warmed_up is True
+
+
+def test_warmup_skipped_when_disabled(settings: Settings, mock_vad: MagicMock) -> None:
+    """When asr_warmup_at_start is false, warmup is not triggered."""
+    with _build_app(settings, mock_vad) as app:
+        asr_mock = _mock_asr(app)
+
+        app.start_recording()
+
+        asr_mock.warmup.assert_not_called()
+        assert app._asr_warmed_up is False

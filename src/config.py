@@ -29,6 +29,12 @@ class Settings(BaseSettings):
     asr_device: str = "cpu"
     asr_compute_type: str = "int8"
     asr_beam_size: int = 5
+    asr_streaming_beam_size: int = 1
+    asr_warmup_at_start: bool = True
+
+    # Streaming
+    streaming_enabled: bool = False
+    streaming_chunk_seconds: float = 1.0
 
     # LLM post-processing
     llm_enabled: bool = False

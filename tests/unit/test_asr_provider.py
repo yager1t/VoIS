@@ -257,3 +257,30 @@ def test_transcribe_does_not_pass_bias_when_dictionary_disabled(
     _, kwargs = fake_model.transcribe.call_args
     assert "initial_prompt" not in kwargs
     assert "hotwords" not in kwargs
+
+
+def test_transcribe_uses_custom_beam_size(settings: Settings, fake_model: MagicMock) -> None:
+    """When beam_size is passed explicitly, it overrides the setting."""
+    settings.asr_beam_size = 5
+    provider = FasterWhisperProvider(settings)
+
+    with patch.object(provider, "_model", fake_model):
+        provider.transcribe(np.zeros(SAMPLE_RATE, dtype=np.float32), SAMPLE_RATE, beam_size=3)
+
+    _, kwargs = fake_model.transcribe.call_args
+    assert kwargs["beam_size"] == 3
+
+
+def test_transcribe_uses_settings_beam_size_when_none(
+    settings: Settings,
+    fake_model: MagicMock,
+) -> None:
+    """When beam_size is None, the configured beam size is used."""
+    settings.asr_beam_size = 7
+    provider = FasterWhisperProvider(settings)
+
+    with patch.object(provider, "_model", fake_model):
+        provider.transcribe(np.zeros(SAMPLE_RATE, dtype=np.float32), SAMPLE_RATE)
+
+    _, kwargs = fake_model.transcribe.call_args
+    assert kwargs["beam_size"] == 7

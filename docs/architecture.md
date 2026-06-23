@@ -3,7 +3,7 @@
 This document describes the current architecture of the Voice-to-Cursor AI Dictation System.
 
 For the original product brief, see [`voice_to_cursor_prompt.md`](../voice_to_cursor_prompt.md).  
-For the approved implementation plan, see [`C:\Users\Jury\.kimi\plans\groot-fantomex-mister-terrific.md`](file:///C:/Users/Jury/.kimi/plans/groot-fantomex-mister-terrific.md).  
+For the approved implementation plan, see [`C:\Users\Jury\.kimi\plans\silver-surfer-batgirl-quake.md`](file:///C:/Users/Jury/.kimi/plans/silver-surfer-batgirl-quake.md).  
 For day-to-day safety rules when editing or running commands, see [`docs/ai_working_guide.md`](ai_working_guide.md).
 
 ## Current status
@@ -26,13 +26,27 @@ background `QThread`, while the main thread owns `QApplication` and the `QSystem
 1. `HotkeyManager` listens for the configured global hotkey (default `f9`).
 2. On press it notifies `App`, which clears `AudioBuffer` and starts `AudioCapture`.
 3. While the key is held, `AudioCapture` streams microphone chunks into `AudioBuffer`.
-4. On release, `App` stops capture, runs VAD-based silence trimming, and sends the trimmed audio to `ASRProvider`.
-5. `FasterWhisperProvider` transcribes the audio (model is lazy-loaded on first use). When `dictionary_enabled` is true, an `ASRBias` instance supplies an `initial_prompt` and `hotwords` derived from the active context mode and vocabulary to nudge recognition toward domain terms.
-6. `App` passes the raw transcript through a `TextCorrector` when `dictionary_enabled` is true. The corrector applies vocabulary replacements (longest-match, word-boundary aware, case-preserving) before post-processing.
-7. `App` passes the corrected transcript to a `PostProcessor`. The default implementation is a deterministic `TextFormatter`; when `llm_enabled` is true an `LLMPostProcessor` backed by an Ollama LLM is used instead.
-8. `App` passes the post-processed text to `TextInjector`.
-9. When `dictionary_learning_enabled` is true, `App` feeds the final injected text to a `VocabularyLearner`, which extracts candidate terms (capitalized compounds, mixed-case identifiers, terms with digits) and persists them once they cross a frequency threshold.
-10. `WindowsTextInjector` types the text at the active cursor via `SendInput`, or falls back to clipboard paste when configured.
+4. When `streaming_enabled` is true, `App` also creates and starts a `StreamingTranscriber`.
+   Each incoming chunk is routed to both the buffer and the streaming transcriber. The
+   transcriber runs in a background thread, uses VAD to detect speech, and emits
+   incremental `TranscriptionResult`s; a silence pause marks the latest partial result
+   final, and any remaining audio is flushed as a final result on stop.
+5. On release, `App` stops capture. In streaming mode it stops the transcriber,
+   concatenates all final streaming results, and uses that text when non-empty. If the
+   streaming transcript is empty, it falls back to the legacy flow: VAD-based silence
+   trimming followed by a full `ASRProvider.transcribe` call. When `streaming_enabled`
+   is false, the legacy flow is used directly. When `asr_warmup_at_start` is true, `App`
+   triggers `ASRProvider.warmup()` in a background thread at the start of recording so
+   the first real transcription is not delayed by model loading.
+6. `FasterWhisperProvider` transcribes the audio (model is lazy-loaded on first use, or
+   preloaded by `warmup()`). When `dictionary_enabled` is true, an `ASRBias` instance
+   supplies an `initial_prompt` and `hotwords` derived from the active context mode and
+   vocabulary to nudge recognition toward domain terms.
+7. `App` passes the raw transcript through a `TextCorrector` when `dictionary_enabled` is true. The corrector applies vocabulary replacements (longest-match, word-boundary aware, case-preserving) before post-processing.
+8. `App` passes the corrected transcript to a `PostProcessor`. The default implementation is a deterministic `TextFormatter`; when `llm_enabled` is true an `LLMPostProcessor` backed by an Ollama LLM is used instead.
+9. `App` passes the post-processed text to `TextInjector`.
+10. When `dictionary_learning_enabled` is true, `App` feeds the final injected text to a `VocabularyLearner`, which extracts candidate terms (capitalized compounds, mixed-case identifiers, terms with digits) and persists them once they cross a frequency threshold.
+11. `WindowsTextInjector` types the text at the active cursor via `SendInput`, or falls back to clipboard paste when configured.
 
 In `--dry-run` mode the text is logged instead of injected.
 
@@ -64,7 +78,7 @@ Loguru configuration with console and rotating file sinks.
 ### `src/asr/`
 - `base.py` — `ASRProvider` interface and `TranscriptionResult` dataclass.
 - `model_manager.py` — `ModelManager` resolves model paths and handles downloads. Model download and instantiation are wrapped in patchable functions (`_download_model`, `_create_whisper_model`) so unit tests can avoid importing heavy ML packages.
-- `whisper_provider.py` — `FasterWhisperProvider` transcribes audio via `faster-whisper`. The model is lazy-loaded.
+- `whisper_provider.py` — `FasterWhisperProvider` transcribes audio via `faster-whisper`. The model is lazy-loaded. It exposes `warmup()` to force model load by transcribing one second of silence, and `transcribe(..., beam_size)` accepts an optional beam-size override for streaming.
 - `streaming.py` — `StreamingTranscriber` runs a background thread that consumes audio chunks from a `StreamingAudioBuffer`, runs VAD, and emits incremental `TranscriptionResult`s via a queue. Silence pauses mark partial results final, and remaining audio is flushed as a final result on stop.
 
 ### `src/hotkey/`
@@ -134,9 +148,12 @@ Completed:
 Completed:
 - [x] UI integration for dictionary and learning (Phase 5 of v0.3).
 
+Completed:
+- [x] Streaming audio buffer and streaming transcriber (Phase 1 of v0.4).
+
 In progress:
-- [ ] Streaming audio buffer and streaming transcriber (Phase 1 of v0.4).
+- [ ] Integrate streaming into App and add ASR warmup (Phase 2 of v0.4).
 
 Planned:
-- [ ] Streaming ASR and latency optimization (remaining v0.4 phases).
+- [ ] Remaining v0.4 latency and quality improvements.
 - [ ] macOS and Linux support (v0.5).

@@ -69,7 +69,22 @@ class FasterWhisperProvider(ASRProvider):
             compute_type=self.settings.asr_compute_type,
         )
 
-    def transcribe(self, audio: np.ndarray, sample_rate: int) -> TranscriptionResult:
+    def warmup(self) -> None:
+        """Force model load by transcribing one second of silence.
+
+        This avoids the first real transcription being delayed while the ASR
+        model is loaded into memory.
+        """
+        sample_rate = self.settings.audio_sample_rate
+        silence = np.zeros(sample_rate, dtype=np.float32)
+        self.transcribe(silence, sample_rate)
+
+    def transcribe(
+        self,
+        audio: np.ndarray,
+        sample_rate: int,
+        beam_size: int | None = None,
+    ) -> TranscriptionResult:
         """Transcribe a complete audio clip into text.
 
         The audio is written to a temporary WAV file and passed to the model.
@@ -77,6 +92,8 @@ class FasterWhisperProvider(ASRProvider):
         Args:
             audio: One-dimensional ``float32`` audio samples in the range ``[-1, 1]``.
             sample_rate: Sample rate of ``audio`` in Hz.
+            beam_size: Beam size override. When ``None``, the value from
+                ``settings.asr_beam_size`` is used.
 
         Returns:
             A ``TranscriptionResult`` with the recognized text.
@@ -102,7 +119,11 @@ class FasterWhisperProvider(ASRProvider):
             sf.write(tmp_path, samples, sample_rate)
             transcribe_kwargs: dict[str, object] = {
                 "language": language,
-                "beam_size": self.settings.asr_beam_size,
+                "beam_size": (
+                    beam_size
+                    if beam_size is not None
+                    else self.settings.asr_beam_size
+                ),
                 "condition_on_previous_text": True,
             }
 

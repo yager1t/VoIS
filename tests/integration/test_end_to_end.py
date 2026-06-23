@@ -14,6 +14,7 @@ from src.config import Settings
 @pytest.fixture
 def app(settings: Settings) -> App:
     """Return an App wired with fully mocked platform dependencies."""
+    settings.asr_warmup_at_start = False
     event_mock = MagicMock()
     event_mock.is_set.return_value = True
 

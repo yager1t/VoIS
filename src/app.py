@@ -9,6 +9,8 @@ from typing import TYPE_CHECKING
 import numpy as np
 from loguru import logger
 
+from src.asr.base import TranscriptionResult
+from src.asr.streaming import StreamingTranscriber
 from src.audio.buffer import AudioBuffer
 from src.audio.capture import AudioCapture
 from src.audio.vad import WebRTCVADProvider
@@ -81,7 +83,9 @@ class App:
             max_seconds=settings.audio_max_record_seconds,
             sample_rate=settings.audio_sample_rate,
         )
-        self.capture.set_callback(self.buffer.append)
+        self.capture.set_callback(self._on_audio_chunk)
+        self.streaming_transcriber: StreamingTranscriber | None = None
+        self._asr_warmed_up = False
         self.injector: TextInjector = create_text_injector()
         if isinstance(self.injector, WindowsTextInjector):
             self.injector.fallback_to_clipboard = settings.injection_fallback_to_clipboard
@@ -150,10 +154,47 @@ class App:
         self.capture.stop()
         logger.info("Voice-to-Cursor stopped")
 
+    def _on_audio_chunk(self, chunk: np.ndarray) -> None:
+        """Route an incoming audio chunk to the buffer and optional streamer."""
+        self.buffer.append(chunk)
+        if self.settings.streaming_enabled and self.streaming_transcriber is not None:
+            self.streaming_transcriber.add_audio(chunk)
+
+    def _concatenate_streaming_results(self, results: list[TranscriptionResult]) -> str:
+        """Join final streaming results into a single transcript."""
+        texts = [
+            result.text.strip()
+            for result in results
+            if result.is_final and result.text.strip()
+        ]
+        return " ".join(texts)
+
+    def _warmup_asr(self) -> None:
+        """Load the ASR model in the background so first transcription is fast."""
+        self._asr_warmed_up = True
+        try:
+            self.asr.warmup()
+        except Exception:
+            logger.exception("ASR warmup failed")
+
     def start_recording(self) -> None:
         """Start audio recording when the hotkey is pressed."""
         logger.info("Start recording requested")
         self.buffer.clear()
+
+        if self.settings.streaming_enabled:
+            if self.streaming_transcriber is not None:
+                self.streaming_transcriber.stop()
+            self.streaming_transcriber = StreamingTranscriber(
+                self.settings,
+                self.asr,
+                self.vad,
+            )
+            self.streaming_transcriber.start()
+
+        if self.settings.asr_warmup_at_start and not self._asr_warmed_up:
+            threading.Thread(target=self._warmup_asr, daemon=True).start()
+
         self.capture.start()
         self._invoke_callback("recording_started")
 
@@ -175,8 +216,21 @@ class App:
         text = ""
         if audio.size > 0:
             prepared = self._prepare_audio(audio)
-            if prepared.size > 0:
+
+            if self.settings.streaming_enabled and self.streaming_transcriber is not None:
+                self.streaming_transcriber.stop()
+                results = self.streaming_transcriber.get_results()
+                streaming_text = self._concatenate_streaming_results(results)
+                self.streaming_transcriber = None
+
+                if streaming_text:
+                    text = streaming_text
+                elif prepared.size > 0:
+                    text = self.transcribe_audio(prepared)
+            elif prepared.size > 0:
                 text = self.transcribe_audio(prepared)
+
+            if text:
                 if self.settings.dictionary_enabled:
                     context_mode = parse_context_mode(self.settings.context_mode)
                     text = self.corrector.correct(text, context_mode)
