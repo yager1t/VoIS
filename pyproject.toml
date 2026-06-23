@@ -68,7 +68,7 @@ markers = [
 ]
 
 [tool.coverage.run]
-source = ["src"]
+source = ["src", "benchmarks"]
 branch = true
 omit = [
     "*/__main__.py",
