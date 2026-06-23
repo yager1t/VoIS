@@ -1,0 +1,60 @@
+{
+  "entries": [
+    {
+      "term": "function",
+      "replacement": "function",
+      "source": "context",
+      "count": 1,
+      "context": "code"
+    },
+    {
+      "term": "return",
+      "replacement": "return",
+      "source": "context",
+      "count": 1,
+      "context": "code"
+    },
+    {
+      "term": "class",
+      "replacement": "class",
+      "source": "context",
+      "count": 1,
+      "context": "code"
+    },
+    {
+      "term": "import",
+      "replacement": "import",
+      "source": "context",
+      "count": 1,
+      "context": "code"
+    },
+    {
+      "term": "def",
+      "replacement": "def",
+      "source": "context",
+      "count": 1,
+      "context": "code"
+    },
+    {
+      "term": "async",
+      "replacement": "async",
+      "source": "context",
+      "count": 1,
+      "context": "code"
+    },
+    {
+      "term": "await",
+      "replacement": "await",
+      "source": "context",
+      "count": 1,
+      "context": "code"
+    },
+    {
+      "term": "lambda",
+      "replacement": "lambda",
+      "source": "context",
+      "count": 1,
+      "context": "code"
+    }
+  ]
+}

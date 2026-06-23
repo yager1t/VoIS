@@ -1,0 +1,39 @@
+{
+  "entries": [
+    {
+      "term": "Best regards",
+      "replacement": "Best regards",
+      "source": "context",
+      "count": 1,
+      "context": "email"
+    },
+    {
+      "term": "Sincerely",
+      "replacement": "Sincerely",
+      "source": "context",
+      "count": 1,
+      "context": "email"
+    },
+    {
+      "term": "Thank you",
+      "replacement": "Thank you",
+      "source": "context",
+      "count": 1,
+      "context": "email"
+    },
+    {
+      "term": "Please find attached",
+      "replacement": "Please find attached",
+      "source": "context",
+      "count": 1,
+      "context": "email"
+    },
+    {
+      "term": "Looking forward",
+      "replacement": "Looking forward",
+      "source": "context",
+      "count": 1,
+      "context": "email"
+    }
+  ]
+}

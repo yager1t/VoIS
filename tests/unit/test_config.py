@@ -25,6 +25,11 @@ def test_default_settings() -> None:
     assert "Fix grammar" in settings.llm_prompt
     assert settings.data_dir == Path("data")
     assert settings.models_dir == Path("models")
+    # v0.3 dictionary fields
+    assert settings.context_mode == "general"
+    assert settings.dictionary_enabled is True
+    assert settings.dictionary_learning_enabled is False
+    assert settings.vocab_dir == Path("data/vocab")
 
 
 def test_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -45,12 +50,17 @@ def test_env_override(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_ensure_dirs_creates_paths(tmp_path: Path) -> None:
-    """ensure_dirs should create data, models, and log directories."""
-    settings = Settings(data_dir=tmp_path / "data", models_dir=tmp_path / "models")
+    """ensure_dirs should create data, models, log, and vocab directories."""
+    settings = Settings(
+        data_dir=tmp_path / "data",
+        models_dir=tmp_path / "models",
+        vocab_dir=tmp_path / "vocab",
+    )
     settings.ensure_dirs()
     assert (tmp_path / "data").exists()
     assert (tmp_path / "models").exists()
     assert (tmp_path / "data" / "logs").exists()
+    assert (tmp_path / "vocab").exists()
 
 
 def test_validation_rejects_invalid_sample_rate(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -111,6 +121,20 @@ def test_new_fields_load_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.vad_trim_seconds == 0.5
     assert settings.asr_beam_size == 3
     assert settings.audio_max_record_seconds == 30.0
+
+
+def test_dictionary_fields_load_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Dictionary fields should be configurable from environment variables."""
+    monkeypatch.setenv("CONTEXT_MODE", "code")
+    monkeypatch.setenv("DICTIONARY_ENABLED", "false")
+    monkeypatch.setenv("DICTIONARY_LEARNING_ENABLED", "true")
+    monkeypatch.setenv("VOCAB_DIR", "/tmp/vocab")
+
+    settings = Settings()
+    assert settings.context_mode == "code"
+    assert settings.dictionary_enabled is False
+    assert settings.dictionary_learning_enabled is True
+    assert settings.vocab_dir == Path("/tmp/vocab")
 
 
 def test_cwd_independent_import() -> None:

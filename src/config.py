@@ -52,6 +52,12 @@ class Settings(BaseSettings):
     # Dry-run mode (print instead of injecting)
     dry_run: bool = False
 
+    # Dictionary / vocabulary
+    context_mode: str = "general"
+    dictionary_enabled: bool = True
+    dictionary_learning_enabled: bool = False
+    vocab_dir: Path = Path("data/vocab")
+
     # Paths
     data_dir: Path = Path("data")
     models_dir: Path = Path("models")
@@ -61,3 +67,4 @@ class Settings(BaseSettings):
         self.data_dir.mkdir(parents=True, exist_ok=True)
         self.models_dir.mkdir(parents=True, exist_ok=True)
         (self.data_dir / "logs").mkdir(parents=True, exist_ok=True)
+        self.vocab_dir.mkdir(parents=True, exist_ok=True)

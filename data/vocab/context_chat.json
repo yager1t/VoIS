@@ -1,0 +1,39 @@
+{
+  "entries": [
+    {
+      "term": "lol",
+      "replacement": "lol",
+      "source": "context",
+      "count": 1,
+      "context": "chat"
+    },
+    {
+      "term": "btw",
+      "replacement": "btw",
+      "source": "context",
+      "count": 1,
+      "context": "chat"
+    },
+    {
+      "term": "imo",
+      "replacement": "imo",
+      "source": "context",
+      "count": 1,
+      "context": "chat"
+    },
+    {
+      "term": "idk",
+      "replacement": "idk",
+      "source": "context",
+      "count": 1,
+      "context": "chat"
+    },
+    {
+      "term": "np",
+      "replacement": "np",
+      "source": "context",
+      "count": 1,
+      "context": "chat"
+    }
+  ]
+}

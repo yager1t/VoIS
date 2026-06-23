@@ -29,7 +29,9 @@ env/
 
 # Project runtime data
 models/
-data/
+data/*
+!data/vocab/
+!data/vocab/**
 
 # Backups archives
 backups/
