@@ -57,17 +57,37 @@ class FasterWhisperProvider(ASRProvider):
         if self._model is not None:
             return
 
+        device = self.settings.asr_device
+        compute_type = self.settings.asr_compute_type
         logger.info(
             "Loading faster-whisper model '{}' on {} ({})",
             self._model_name,
-            self.settings.asr_device,
-            self.settings.asr_compute_type,
+            device,
+            compute_type,
         )
-        self._model = self._model_manager.load_whisper_model(
-            self._model_name,
-            device=self.settings.asr_device,
-            compute_type=self.settings.asr_compute_type,
-        )
+        try:
+            self._model = self._model_manager.load_whisper_model(
+                self._model_name,
+                device=device,
+                compute_type=compute_type,
+            )
+        except (RuntimeError, OSError, ImportError) as exc:
+            error_text = str(exc).lower()
+            if device == "cpu" or not any(
+                keyword in error_text for keyword in ("cuda", "cublas", "cudnn", "gpu")
+            ):
+                raise
+            logger.warning(
+                "Failed to load model on {} ({}): {}. Falling back to CPU.",
+                device,
+                compute_type,
+                exc,
+            )
+            self._model = self._model_manager.load_whisper_model(
+                self._model_name,
+                device="cpu",
+                compute_type="int8",
+            )
 
     def warmup(self) -> None:
         """Force model load by transcribing one second of silence.

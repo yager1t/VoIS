@@ -20,14 +20,16 @@ def configure_logging(log_level: str | None = None) -> None:
     os.makedirs(log_dir, exist_ok=True)
 
     logger.remove()
-    logger.add(
-        sys.stderr,
-        level=level,
-        format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
-        "<level>{level: <8}</level> | "
-        "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
-        "<level>{message}</level>",
-    )
+    # In a PyInstaller windowed build sys.stderr is None; log only to file then.
+    if sys.stderr is not None:
+        logger.add(
+            sys.stderr,
+            level=level,
+            format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | "
+            "<level>{level: <8}</level> | "
+            "<cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - "
+            "<level>{message}</level>",
+        )
     logger.add(
         os.path.join(log_dir, "app.log"),
         level=level,

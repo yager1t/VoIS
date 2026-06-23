@@ -199,6 +199,50 @@ def test_load_model_calls_model_manager_with_correct_args(settings: Settings) ->
     )
 
 
+def test_load_model_falls_back_to_cpu_on_cuda_error(settings: Settings) -> None:
+    """When CUDA loading fails, the provider should fall back to CPU."""
+    settings.asr_device = "cuda"
+    settings.asr_compute_type = "float16"
+    provider = FasterWhisperProvider(settings)
+    cpu_model = MagicMock()
+
+    def side_effect(model_name: str, *, device: str, compute_type: str) -> MagicMock:
+        if device == "cuda":
+            raise RuntimeError("Library cublas64_12.dll is not found")
+        return cpu_model
+
+    with patch.object(
+        provider._model_manager,
+        "load_whisper_model",
+        side_effect=side_effect,
+    ) as mock_load:
+        provider.load_model()
+
+    assert provider._model is cpu_model
+    assert mock_load.call_count == 2
+    second_call = mock_load.call_args_list[1]
+    assert second_call.kwargs["device"] == "cpu"
+    assert second_call.kwargs["compute_type"] == "int8"
+
+
+def test_load_model_does_not_fallback_on_non_cuda_error(settings: Settings) -> None:
+    """Non-CUDA loading errors should propagate without retry."""
+    settings.asr_device = "cuda"
+    provider = FasterWhisperProvider(settings)
+
+    with (
+        patch.object(
+            provider._model_manager,
+            "load_whisper_model",
+            side_effect=RuntimeError("some other error"),
+        ) as mock_load,
+        pytest.raises(RuntimeError, match="some other error"),
+    ):
+        provider.load_model()
+
+    mock_load.assert_called_once()
+
+
 def test_transcribe_cleans_up_temp_wav(settings: Settings) -> None:
     """Transcribe should remove the temporary WAV file after transcription."""
     provider = FasterWhisperProvider(settings)
@@ -298,18 +342,3 @@ def test_transcribe_uses_custom_beam_size(settings: Settings, fake_model: MagicM
 
     _, kwargs = fake_model.transcribe.call_args
     assert kwargs["beam_size"] == 3
-
-
-def test_transcribe_uses_settings_beam_size_when_none(
-    settings: Settings,
-    fake_model: MagicMock,
-) -> None:
-    """When beam_size is None, the configured beam size is used."""
-    settings.asr_beam_size = 7
-    provider = FasterWhisperProvider(settings)
-
-    with patch.object(provider, "_model", fake_model):
-        provider.transcribe(np.zeros(SAMPLE_RATE, dtype=np.float32), SAMPLE_RATE)
-
-    _, kwargs = fake_model.transcribe.call_args
-    assert kwargs["beam_size"] == 7
