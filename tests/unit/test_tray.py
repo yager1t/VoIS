@@ -56,6 +56,20 @@ class _FakeAction:
         self.text = text
 
 
+class _FakeInputDialog:
+    _responses: list[tuple[str, bool]] = []
+
+    @staticmethod
+    def getText(
+        parent: object,
+        title: str,
+        label: str,
+        *,
+        text: str = "",
+    ) -> tuple[str, bool]:
+        return _FakeInputDialog._responses.pop(0)
+
+
 class _FakeMenu:
     def __init__(self) -> None:
         self.actions: list[_FakeAction] = []
@@ -105,6 +119,7 @@ class _FakeQtWidgetsModule:
     QMenu = _FakeMenu
     QApplication = _FakeApplication
     QStyle = _FakeStyle
+    QInputDialog = _FakeInputDialog
 
 
 class _FakeQtGuiModule:
@@ -123,6 +138,7 @@ class _FakeApp:
         self.recording_started = None
         self.recording_stopped = None
         self.text_injected = None
+        self.corrections: list[tuple[str, str]] = []
 
     def is_running(self) -> bool:
         return self.running
@@ -132,6 +148,9 @@ class _FakeApp:
 
     def stop(self) -> None:
         self.running = False
+
+    def record_correction(self, original: str, corrected: str) -> None:
+        self.corrections.append((original, corrected))
 
 
 @pytest.fixture
@@ -164,13 +183,14 @@ def tray(mock_qt, tmp_path):
 
 
 def test_tray_creates_menu_and_actions(tray) -> None:
-    """TrayIcon should build a context menu with Start, Settings, and Exit."""
+    """TrayIcon should build a context menu with Start, Settings, Add correction, and Exit."""
     tray_icon, app = tray
 
     assert isinstance(tray_icon._menu, _FakeMenu)
-    assert len(tray_icon._menu.actions) == 3
+    assert len(tray_icon._menu.actions) == 4
     assert tray_icon._toggle_action.text == "Start"
     assert tray_icon._settings_action.enabled is True
+    assert tray_icon._add_correction_action.text == "Add correction..."
     assert tray_icon._exit_action.text == "Exit"
     assert app.is_running() is False
 
@@ -279,3 +299,27 @@ def test_tray_settings_action_without_window_is_safe(tray) -> None:
     tray_icon.settings_window = None
 
     tray_icon._on_settings()
+
+
+def test_tray_add_correction_action_records_correction(tray) -> None:
+    """The Add correction action should record a correction and notify."""
+    tray_icon, app = tray
+    _FakeInputDialog._responses = [("origial", True), ("original", True)]
+
+    tray_icon._on_add_correction()
+
+    assert app.corrections == [("origial", "original")]
+    assert any(
+        args == ("Correction saved", "'origial' → 'original'")
+        for args, _ in tray_icon.show_notification._emitted
+    )
+
+
+def test_tray_add_correction_action_aborts_on_cancel(tray) -> None:
+    """Cancelling the correction dialog should not record anything."""
+    tray_icon, app = tray
+    _FakeInputDialog._responses = [("", False)]
+
+    tray_icon._on_add_correction()
+
+    assert app.corrections == []

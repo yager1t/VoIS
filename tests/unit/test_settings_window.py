@@ -207,6 +207,9 @@ def test_window_loads_settings_into_widgets(settings_window) -> None:
     assert settings_window._language_edit.text() == "fr"
     assert settings_window._device_combo.currentText() == "cuda"
     assert settings_window._llm_enabled_check.isChecked() is True
+    assert settings_window._context_mode_combo.currentText() == "general"
+    assert settings_window._dictionary_enabled_check.isChecked() is True
+    assert settings_window._dictionary_learning_check.isChecked() is False
     assert settings_window._llm_url_edit.text() == "http://localhost:1234"
     assert settings_window._llm_model_edit.text() == "mistral"
     assert settings_window._llm_timeout_spin.value() == 10.0
@@ -222,6 +225,9 @@ def test_save_writes_env_file_with_expected_values(settings_window, tmp_path) ->
     settings_window._language_edit.setText("de")
     settings_window._device_combo.setCurrentText("cpu")
     settings_window._llm_enabled_check.setChecked(False)
+    settings_window._context_mode_combo.setCurrentText("code")
+    settings_window._dictionary_enabled_check.setChecked(False)
+    settings_window._dictionary_learning_check.setChecked(True)
     settings_window._llm_url_edit.setText("http://ollama:11434")
     settings_window._llm_model_edit.setText("llama3.1")
     settings_window._llm_timeout_spin.setValue(3.5)
@@ -242,6 +248,9 @@ def test_save_writes_env_file_with_expected_values(settings_window, tmp_path) ->
     assert "ASR_LANGUAGE=de" in env_text
     assert "ASR_DEVICE=cpu" in env_text
     assert "LLM_ENABLED=false" in env_text
+    assert "CONTEXT_MODE=code" in env_text
+    assert "DICTIONARY_ENABLED=false" in env_text
+    assert "DICTIONARY_LEARNING_ENABLED=true" in env_text
     assert "LLM_URL=http://ollama:11434" in env_text
     assert "LLM_MODEL=llama3.1" in env_text
     assert "LLM_TIMEOUT=3.5" in env_text
@@ -284,6 +293,29 @@ def test_test_llm_button_is_disabled(settings_window) -> None:
     """The Test LLM button should be present but disabled."""
     assert settings_window._test_llm_button.text == "Test LLM"
     assert settings_window._test_llm_button._enabled is False
+
+
+def test_vocab_editor_button_is_present(settings_window) -> None:
+    """The settings window should have an Open vocabulary editor button."""
+    assert settings_window._open_vocab_editor_button.text == "Open vocabulary editor"
+
+
+def test_set_vocab_editor_and_open_shows_editor(settings_window) -> None:
+    """set_vocab_editor should attach an editor shown by the open button."""
+    fake_editor = MagicMock()
+    settings_window.set_vocab_editor(fake_editor)
+
+    settings_window._open_vocab_editor_button.clicked.emit()
+
+    fake_editor.show.assert_called_once()
+    fake_editor.raise_.assert_called_once()
+
+
+def test_open_vocab_editor_without_editor_is_safe(settings_window) -> None:
+    """Clicking the vocab editor button without an attached editor should not raise."""
+    settings_window.set_vocab_editor(None)
+
+    settings_window._open_vocab_editor_button.clicked.emit()
 
 
 def test_serialize_env_value_quotes_special_characters() -> None:

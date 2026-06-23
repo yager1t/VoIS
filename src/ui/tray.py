@@ -8,6 +8,7 @@ from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtGui import QAction, QIcon
 from PyQt6.QtWidgets import (
     QApplication,
+    QInputDialog,
     QMenu,
     QStyle,
     QSystemTrayIcon,
@@ -55,6 +56,10 @@ class TrayIcon(QSystemTrayIcon):
         self._settings_action = QAction("Settings")
         self._settings_action.triggered.connect(self._on_settings)
         self._menu.addAction(self._settings_action)
+
+        self._add_correction_action = QAction("Add correction...")
+        self._add_correction_action.triggered.connect(self._on_add_correction)
+        self._menu.addAction(self._add_correction_action)
 
         self._exit_action = QAction("Exit")
         self._exit_action.triggered.connect(QApplication.quit)
@@ -129,6 +134,18 @@ class TrayIcon(QSystemTrayIcon):
         if self.settings_window is not None:
             self.settings_window.show()
             self.settings_window.raise_()
+
+    def _on_add_correction(self) -> None:
+        """Prompt for an original/corrected pair and record the correction."""
+        original, ok = QInputDialog.getText(None, "Add correction", "Original:")
+        if not ok or not original.strip():
+            return
+        corrected, ok = QInputDialog.getText(None, "Add correction", "Corrected:")
+        if not ok:
+            return
+        if hasattr(self.app, "record_correction") and callable(self.app.record_correction):
+            self.app.record_correction(original.strip(), corrected.strip())
+        self.notify("Correction saved", f"'{original.strip()}' → '{corrected.strip()}'")
 
     def _on_activated(self, reason: QSystemTrayIcon.ActivationReason) -> None:
         """Handle tray activation (e.g. left click).

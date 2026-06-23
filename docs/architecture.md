@@ -43,8 +43,9 @@ CLI entry point. Parses arguments, loads `Settings` from environment/`.env`, app
 Application orchestrator. Owns the hotkey manager, audio capture, buffer, VAD provider, ASR provider, and text injector. Implements both push-to-talk and toggle modes. Exposes optional callback attributes (`recording_started`, `recording_stopped`, `text_injected`) so the tray UI can react to pipeline events without making `App` depend on Qt.
 
 ### `src/ui/`
-- `tray.py` — `TrayIcon` is a `QSystemTrayIcon` with a context menu (Start/Stop toggle, Settings, Exit) and a recording-state indicator. It exposes thread-safe `set_recording(recording)` and `notify(title, message)` methods that emit Qt signals; the corresponding slots update the tray icon and show balloon notifications.
-- `settings_window.py` — `SettingsWindow` is a `QWidget` form for editing hotkey, push-to-talk, ASR model, language, device, LLM options, and dry-run mode. On save it writes the current configuration back to the project `.env` file and emits `settings_saved`.
+- `tray.py` — `TrayIcon` is a `QSystemTrayIcon` with a context menu (Start/Stop toggle, Settings, Add correction, Exit) and a recording-state indicator. It exposes thread-safe `set_recording(recording)` and `notify(title, message)` methods that emit Qt signals; the corresponding slots update the tray icon and show balloon notifications. The "Add correction..." action records a user correction through the application orchestrator for adaptive learning.
+- `settings_window.py` — `SettingsWindow` is a `QWidget` form for editing hotkey, push-to-talk, ASR model, language, device, LLM options, dry-run mode, context mode, dictionary enabling, and vocabulary learning. On save it writes the current configuration back to the project `.env` file and emits `settings_saved`.
+- `vocab_editor.py` — `VocabularyEditor` is a `QDialog` that shows all loaded vocabulary entries and lets the user add, edit, and remove user-level terms, which are persisted to `data/vocab/user.json`.
 
 ### `src/config.py`
 Pydantic-settings based configuration. Includes hotkey, audio, ASR, LLM post-processing, VAD, injection, and dry-run settings.
@@ -126,7 +127,9 @@ Completed:
 Completed:
 - [x] Adaptive vocabulary learning (Phase 4 of v0.3).
 
+Completed:
+- [x] UI integration for dictionary and learning (Phase 5 of v0.3).
+
 Planned:
-- [ ] UI integration for dictionary and learning (Phase 5 of v0.3).
 - [ ] Streaming ASR and latency optimization (v0.4).
 - [ ] macOS and Linux support (v0.5).

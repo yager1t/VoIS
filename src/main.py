@@ -14,6 +14,7 @@ from src.config import Settings
 from src.logging_config import configure_logging, logger
 from src.ui.settings_window import SettingsWindow
 from src.ui.tray import TrayIcon
+from src.ui.vocab_editor import VocabularyEditor
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -145,6 +146,8 @@ def main(argv: list[str] | None = None) -> int:
 
     app = App(settings)
     settings_window = SettingsWindow(settings, env_file=env_file)
+    vocab_editor = VocabularyEditor(app.dictionary)
+    settings_window.set_vocab_editor(vocab_editor)
     tray = TrayIcon(app, settings, settings_window=settings_window)
     tray.show()
 

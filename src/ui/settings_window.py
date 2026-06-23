@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from PyQt6.QtCore import pyqtSignal
 from PyQt6.QtWidgets import (
@@ -21,6 +22,7 @@ from src.config import Settings
 
 ASR_MODEL_SIZES = ["tiny", "base", "small", "medium", "large"]
 ASR_DEVICES = ["cpu", "cuda"]
+CONTEXT_MODES = ["general", "chat", "email", "code"]
 
 
 def _serialize_env_value(key: str, value: object) -> str:
@@ -101,6 +103,20 @@ class SettingsWindow(QWidget):
         self._llm_enabled_check = QCheckBox()
         self._layout.addRow("LLM enabled", self._llm_enabled_check)
 
+        self._context_mode_combo = QComboBox()
+        self._context_mode_combo.addItems(CONTEXT_MODES)
+        self._layout.addRow("Context mode", self._context_mode_combo)
+
+        self._dictionary_enabled_check = QCheckBox()
+        self._layout.addRow("Enable dictionary", self._dictionary_enabled_check)
+
+        self._dictionary_learning_check = QCheckBox()
+        self._layout.addRow("Enable vocabulary learning", self._dictionary_learning_check)
+
+        self._open_vocab_editor_button = QPushButton("Open vocabulary editor")
+        self._open_vocab_editor_button.clicked.connect(self._on_open_vocab_editor)
+        self._layout.addRow(self._open_vocab_editor_button)
+
         self._llm_url_edit = QLineEdit()
         self._layout.addRow("LLM URL", self._llm_url_edit)
 
@@ -118,6 +134,8 @@ class SettingsWindow(QWidget):
 
         self._dry_run_check = QCheckBox()
         self._layout.addRow("Dry-run", self._dry_run_check)
+
+        self._vocab_editor: Any | None = None
 
         self._button_layout = QHBoxLayout()
         self._save_button = QPushButton("Save")
@@ -146,6 +164,9 @@ class SettingsWindow(QWidget):
         self._language_edit.setText(settings.asr_language)
         self._device_combo.setCurrentText(settings.asr_device)
         self._llm_enabled_check.setChecked(settings.llm_enabled)
+        self._context_mode_combo.setCurrentText(settings.context_mode)
+        self._dictionary_enabled_check.setChecked(settings.dictionary_enabled)
+        self._dictionary_learning_check.setChecked(settings.dictionary_learning_enabled)
         self._llm_url_edit.setText(settings.llm_url)
         self._llm_model_edit.setText(settings.llm_model)
         self._llm_timeout_spin.setValue(settings.llm_timeout)
@@ -161,6 +182,9 @@ class SettingsWindow(QWidget):
             "asr_language": self._language_edit.text(),
             "asr_device": self._device_combo.currentText(),
             "llm_enabled": self._llm_enabled_check.isChecked(),
+            "context_mode": self._context_mode_combo.currentText(),
+            "dictionary_enabled": self._dictionary_enabled_check.isChecked(),
+            "dictionary_learning_enabled": self._dictionary_learning_check.isChecked(),
             "llm_url": self._llm_url_edit.text(),
             "llm_model": self._llm_model_edit.text(),
             "llm_timeout": self._llm_timeout_spin.value(),
@@ -180,3 +204,17 @@ class SettingsWindow(QWidget):
     def _on_cancel(self) -> None:
         """Hide the window without saving changes."""
         self.hide()
+
+    def set_vocab_editor(self, editor: object | None) -> None:
+        """Attach a vocabulary editor instance to be shown by this window.
+
+        Args:
+            editor: Vocabulary editor dialog (usually ``VocabularyEditor``).
+        """
+        self._vocab_editor = editor
+
+    def _on_open_vocab_editor(self) -> None:
+        """Show the attached vocabulary editor if one has been provided."""
+        if self._vocab_editor is not None:
+            self._vocab_editor.show()
+            self._vocab_editor.raise_()

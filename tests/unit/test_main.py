@@ -123,6 +123,7 @@ def main_mocks(tmp_path):
     mock_worker = MagicMock()
     mock_tray = MagicMock()
     mock_settings_window = MagicMock()
+    mock_vocab_editor = MagicMock()
 
     env_file = tmp_path / "custom.env"
     env_file.write_text("ASR_MODEL=small\n")
@@ -136,6 +137,9 @@ def main_mocks(tmp_path):
         patch(
             "src.main.SettingsWindow", return_value=mock_settings_window
         ) as mock_settings_window_cls,
+        patch(
+            "src.main.VocabularyEditor", return_value=mock_vocab_editor
+        ) as mock_vocab_editor_cls,
         patch("src.main.QThread", return_value=mock_thread) as mock_qthread_cls,
         patch("src.main._Worker", return_value=mock_worker) as mock_worker_cls,
     ):
@@ -155,6 +159,8 @@ def main_mocks(tmp_path):
             "tray_cls": mock_tray_cls,
             "settings_window": mock_settings_window,
             "settings_window_cls": mock_settings_window_cls,
+            "vocab_editor": mock_vocab_editor,
+            "vocab_editor_cls": mock_vocab_editor_cls,
             "thread": mock_thread,
             "qthread_cls": mock_qthread_cls,
             "worker": mock_worker,
@@ -179,6 +185,8 @@ def test_main_loads_env_from_config(main_mocks) -> None:
     mocks["settings_window_cls"].assert_called_once_with(
         mocks["settings"], env_file=str(mocks["env_file"])
     )
+    mocks["vocab_editor_cls"].assert_called_once_with(mocks["app"].dictionary)
+    mocks["settings_window"].set_vocab_editor.assert_called_once_with(mocks["vocab_editor"])
     mocks["tray_cls"].assert_called_once_with(
         mocks["app"], mocks["settings"], settings_window=mocks["settings_window"]
     )

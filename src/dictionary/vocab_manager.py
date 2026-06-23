@@ -109,3 +109,26 @@ class VocabularyManager:
     def get_context_mode(self) -> ContextMode:
         """Return the active context mode."""
         return self._context_mode
+
+    def get_all_entries(self) -> list[DictionaryEntry]:
+        """Return all loaded entries sorted by source and term.
+
+        If no sources have been loaded yet, ``load_all()`` is called first.
+        """
+        if not self._static and not self._context and not self._user:
+            self.load_all()
+
+        entries = [
+            *self._static.values(),
+            *self._context.values(),
+            *self._user.values(),
+        ]
+        source_order = {
+            VocabularySource.static.value: 0,
+            VocabularySource.context.value: 1,
+            VocabularySource.user.value: 2,
+        }
+        return sorted(
+            entries,
+            key=lambda entry: (source_order.get(entry.source.value, 99), entry.term),
+        )

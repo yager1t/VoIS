@@ -111,3 +111,23 @@ def test_get_terms_filters_by_context(manager: VocabularyManager) -> None:
     code_terms = manager.get_terms(context=ContextMode.code)
     assert "function" in code_terms
     assert "Sincerely" not in code_terms
+
+
+def test_get_all_entries_sorted_by_source_and_term(manager: VocabularyManager) -> None:
+    """get_all_entries should return loaded entries sorted by source then term."""
+    manager._static = {
+        "beta": DictionaryEntry(term="beta", replacement="b", source=VocabularySource.static),
+        "alpha": DictionaryEntry(term="alpha", replacement="a", source=VocabularySource.static),
+    }
+    manager._context = {
+        "gamma": DictionaryEntry(term="gamma", replacement="g", source=VocabularySource.context),
+    }
+    manager._user = {
+        "delta": DictionaryEntry(term="delta", replacement="d", source=VocabularySource.user),
+    }
+
+    entries = manager.get_all_entries()
+    terms = [entry.term for entry in entries]
+
+    assert terms == ["alpha", "beta", "gamma", "delta"]
+    assert all(isinstance(entry, DictionaryEntry) for entry in entries)
