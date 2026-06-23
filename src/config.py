@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     streaming_enabled: bool = False
     streaming_chunk_seconds: float = 1.0
 
+    # Final background transcription
+    final_transcription_enabled: bool = True
+    replace_streaming_with_final: bool = False
+
     # LLM post-processing
     llm_enabled: bool = False
     llm_url: str = "http://localhost:11434"

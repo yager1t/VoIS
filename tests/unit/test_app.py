@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 
 from src.app import App, trim_silence
+from src.asr.base import TranscriptionResult
 from src.config import Settings
 from src.dictionary.base import ContextMode
 
@@ -32,6 +33,27 @@ def mock_vad() -> MagicMock:
     vad = MagicMock()
     vad.split_on_silence.return_value = []
     return vad
+
+
+def _make_final_transcriber_factory(
+    instances: list[MagicMock],
+) -> Callable[..., MagicMock]:
+    """Return a factory for FinalTranscriber mocks that invoke callbacks on start."""
+
+    def _factory(*args: object, **kwargs: object) -> MagicMock:
+        instance = MagicMock()
+        instance._final_text = "final transcript"
+        callback = args[3] if len(args) > 3 else kwargs.get("on_result")
+
+        def _start() -> None:
+            if callback is not None:
+                callback(instance._final_text)
+
+        instance.start.side_effect = _start
+        instances.append(instance)
+        return instance
+
+    return _factory
 
 
 @contextmanager
@@ -71,6 +93,7 @@ def _build_app(
         patch("src.app.TextCorrector") as mock_corrector_cls,
         patch("src.app.VocabularyLearner") as mock_learner_cls,
         patch("src.app.StreamingTranscriber") as mock_streaming_cls,
+        patch("src.app.FinalTranscriber") as mock_final_cls,
     ):
         mock_hotkey = MagicMock()
         mock_hotkey_factory.return_value = mock_hotkey
@@ -89,6 +112,8 @@ def _build_app(
         mock_learner_cls.return_value = mock_learner
         mock_streaming = MagicMock()
         mock_streaming_cls.return_value = mock_streaming
+        final_instances: list[MagicMock] = []
+        mock_final_cls.side_effect = _make_final_transcriber_factory(final_instances)
 
         settings.asr_warmup_at_start = warmup
         if streaming:
@@ -105,6 +130,8 @@ def _build_app(
         app._learner_mock = mock_learner
         app._streaming_mock = mock_streaming
         app._streaming_cls_mock = mock_streaming_cls
+        app._final_transcriber_instances = final_instances
+        app._final_transcriber_cls_mock = mock_final_cls
         yield app
 
 
@@ -547,10 +574,87 @@ def test_stop_recording_non_streaming_uses_existing_flow(app: App, settings: Set
 
     asr_mock.transcribe.assert_called_once()
     app._streaming_cls_mock.assert_not_called()
+    app._final_transcriber_cls_mock.assert_not_called()
     app._injector_mock.inject_with_delay.assert_called_once_with(
         "Non streaming text.",
         settings.injection_delay_ms,
     )
+
+
+def test_stop_recording_emits_text_finalized_when_streaming_enabled(
+    streaming_app: App,
+) -> None:
+    """When streaming is enabled, a background final transcription emits text_finalized."""
+    _mock_asr(streaming_app)
+    audio = np.ones(SAMPLE_RATE, dtype=np.float32)
+    streaming_app._buffer_mock.get.return_value = audio
+    streaming_app.vad.split_on_silence.return_value = [audio]
+    streaming_app._streaming_mock.get_results.return_value = [
+        TranscriptionResult(text="hello", is_final=True),
+        TranscriptionResult(text="world", is_final=True),
+    ]
+    streaming_app.post_processor.process = MagicMock(
+        side_effect={"hello world": "Hello world.", "final transcript": "Final text."}.get
+    )
+
+    text_finalized = MagicMock()
+    streaming_app.text_finalized = text_finalized
+
+    streaming_app.start_recording()
+    streaming_app.stop_recording()
+
+    assert len(streaming_app._final_transcriber_instances) == 1
+    final_mock = streaming_app._final_transcriber_instances[-1]
+    final_mock.start.assert_called_once()
+    streaming_app._injector_mock.inject_with_delay.assert_called_once_with(
+        "Hello world.",
+        streaming_app.settings.injection_delay_ms,
+    )
+    text_finalized.assert_called_once_with("Final text.")
+
+
+def test_stop_recording_skips_text_finalized_when_disabled(streaming_app: App) -> None:
+    """When final_transcription_enabled is false, no FinalTranscriber is started."""
+    _mock_asr(streaming_app)
+    streaming_app.settings.final_transcription_enabled = False
+    audio = np.ones(SAMPLE_RATE, dtype=np.float32)
+    streaming_app._buffer_mock.get.return_value = audio
+    streaming_app.vad.split_on_silence.return_value = [audio]
+    streaming_app._streaming_mock.get_results.return_value = [
+        TranscriptionResult(text="hello", is_final=True),
+    ]
+    streaming_app.post_processor.process = MagicMock(return_value="Hello.")
+
+    text_finalized = MagicMock()
+    streaming_app.text_finalized = text_finalized
+
+    streaming_app.start_recording()
+    streaming_app.stop_recording()
+
+    streaming_app._final_transcriber_cls_mock.assert_not_called()
+    text_finalized.assert_not_called()
+
+
+def test_start_recording_cancels_pending_final_transcriber(streaming_app: App) -> None:
+    """Starting a new recording should stop any pending final transcription."""
+    _mock_asr(streaming_app)
+    audio = np.ones(SAMPLE_RATE, dtype=np.float32)
+    streaming_app._buffer_mock.get.return_value = audio
+    streaming_app.vad.split_on_silence.return_value = [audio]
+    streaming_app._streaming_mock.get_results.return_value = [
+        TranscriptionResult(text="hello", is_final=True),
+    ]
+    streaming_app.post_processor.process = MagicMock(return_value="Hello.")
+
+    streaming_app.start_recording()
+    streaming_app.stop_recording()
+
+    assert len(streaming_app._final_transcriber_instances) == 1
+    first_final = streaming_app._final_transcriber_instances[-1]
+
+    streaming_app.start_recording()
+
+    first_final.stop.assert_called_once()
 
 
 def _capture_thread(target: Callable[..., object], *args: object, **_kwargs: object) -> MagicMock:

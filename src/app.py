@@ -10,6 +10,7 @@ import numpy as np
 from loguru import logger
 
 from src.asr.base import TranscriptionResult
+from src.asr.final_transcriber import FinalTranscriber
 from src.asr.streaming import StreamingTranscriber
 from src.audio.buffer import AudioBuffer
 from src.audio.capture import AudioCapture
@@ -78,6 +79,7 @@ class App:
         self.recording_started: Callable[[], None] | None = None
         self.recording_stopped: Callable[[], None] | None = None
         self.text_injected: Callable[[str], None] | None = None
+        self.text_finalized: Callable[[str], None] | None = None
         self.capture = AudioCapture(settings)
         self.buffer = AudioBuffer(
             max_seconds=settings.audio_max_record_seconds,
@@ -85,6 +87,7 @@ class App:
         )
         self.capture.set_callback(self._on_audio_chunk)
         self.streaming_transcriber: StreamingTranscriber | None = None
+        self._final_transcriber: FinalTranscriber | None = None
         self._asr_warmed_up = False
         self.injector: TextInjector = create_text_injector()
         if isinstance(self.injector, WindowsTextInjector):
@@ -182,6 +185,10 @@ class App:
         logger.info("Start recording requested")
         self.buffer.clear()
 
+        if self._final_transcriber is not None:
+            self._final_transcriber.stop()
+            self._final_transcriber = None
+
         if self.settings.streaming_enabled:
             if self.streaming_transcriber is not None:
                 self.streaming_transcriber.stop()
@@ -227,16 +234,20 @@ class App:
                     text = streaming_text
                 elif prepared.size > 0:
                     text = self.transcribe_audio(prepared)
+
+                if self.settings.final_transcription_enabled and prepared.size > 0:
+                    self._final_transcriber = FinalTranscriber(
+                        self.asr,
+                        prepared,
+                        self.settings.audio_sample_rate,
+                        self._on_final_transcription,
+                    )
+                    self._final_transcriber.start()
             elif prepared.size > 0:
                 text = self.transcribe_audio(prepared)
 
             if text:
-                if self.settings.dictionary_enabled:
-                    context_mode = parse_context_mode(self.settings.context_mode)
-                    text = self.corrector.correct(text, context_mode)
-                    logger.info("Corrected text: {}", text)
-                text = self.post_processor.process(text)
-                logger.info("Post-processed text: {}", text)
+                text = self._finalize_text(text)
                 self.inject_text(text)
             else:
                 logger.info("No speech detected after VAD trimming; skipping")
@@ -259,6 +270,34 @@ class App:
         callback = getattr(self, name, None)
         if callback is not None:
             callback(*args)
+
+    def _finalize_text(self, text: str) -> str:
+        """Apply dictionary correction and post-processing to ``text``.
+
+        Args:
+            text: Raw transcript text.
+
+        Returns:
+            Corrected and post-processed text.
+        """
+        if self.settings.dictionary_enabled:
+            context_mode = parse_context_mode(self.settings.context_mode)
+            text = self.corrector.correct(text, context_mode)
+            logger.info("Corrected text: {}", text)
+        text = self.post_processor.process(text)
+        logger.info("Post-processed text: {}", text)
+        return text
+
+    def _on_final_transcription(self, text: str) -> None:
+        """Handle a completed background final transcription.
+
+        Args:
+            text: Raw final transcript text.
+        """
+        if not text:
+            return
+        final_text = self._finalize_text(text)
+        self._invoke_callback("text_finalized", final_text)
 
     def is_running(self) -> bool:
         """Return whether the service is currently running."""
