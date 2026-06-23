@@ -69,14 +69,25 @@ class VocabularyManager:
                 terms.add(entry.term)
         return sorted(terms)
 
-    def add_user_term(self, term: str, replacement: str) -> None:
+    def add_user_term(
+        self,
+        term: str,
+        replacement: str,
+        *,
+        count: int = 1,
+    ) -> None:
         """Add or update a user-level vocabulary entry."""
         self._user[term] = DictionaryEntry(
             term=term,
             replacement=replacement,
             source=VocabularySource.user,
+            count=count,
         )
         self._save_user()
+
+    def get_user_term(self, term: str) -> DictionaryEntry | None:
+        """Return a user-level entry if it exists."""
+        return self._user.get(term)
 
     def remove_user_term(self, term: str) -> None:
         """Remove a user-level vocabulary entry if it exists."""

@@ -8,6 +8,7 @@ from src.dictionary.context_modes import (
     parse_context_mode,
 )
 from src.dictionary.corrector import TextCorrector
+from src.dictionary.learning import VocabularyLearner
 from src.dictionary.vocab_manager import VocabularyManager
 
 __all__ = [
@@ -15,6 +16,7 @@ __all__ = [
     "ContextMode",
     "DictionaryEntry",
     "TextCorrector",
+    "VocabularyLearner",
     "VocabularyManager",
     "VocabularySource",
     "get_context_prompt",

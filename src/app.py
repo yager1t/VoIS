@@ -13,7 +13,7 @@ from src.audio.buffer import AudioBuffer
 from src.audio.capture import AudioCapture
 from src.audio.vad import WebRTCVADProvider
 from src.config import Settings
-from src.dictionary import TextCorrector, VocabularyManager
+from src.dictionary import TextCorrector, VocabularyLearner, VocabularyManager
 from src.dictionary.context_modes import parse_context_mode
 from src.hotkey import create_hotkey_manager
 from src.injection import WindowsTextInjector, create_text_injector
@@ -89,6 +89,7 @@ class App:
         self.dictionary = VocabularyManager(settings)
         self.dictionary.load_all()
         self.corrector = TextCorrector(self.dictionary)
+        self.learner = VocabularyLearner(self.dictionary, settings)
         self._asr: ASRProvider | None = None
         self.vad = self._create_vad()
         on_press = self.start_recording if settings.push_to_talk else self.toggle_recording
@@ -191,6 +192,8 @@ class App:
         self._invoke_callback("recording_stopped")
         if text:
             self._invoke_callback("text_injected", text)
+            if self.settings.dictionary_learning_enabled:
+                self.learner.learn_from_text(text)
 
     def _invoke_callback(self, name: str, *args: object) -> None:
         """Invoke a callback attribute if it has been set.
@@ -238,6 +241,15 @@ class App:
             return
         self.injector.inject_with_delay(text, self.settings.injection_delay_ms)
         logger.info("Injected {} character(s)", len(text))
+
+    def record_correction(self, original: str, corrected: str) -> None:
+        """Record a user correction for adaptive learning.
+
+        Args:
+            original: The original (incorrect) text.
+            corrected: The corrected text.
+        """
+        self.learner.record_correction(original, corrected)
 
     def transcribe_audio(self, audio: np.ndarray) -> str:
         """Transcribe audio and return the recognized text.

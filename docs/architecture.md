@@ -29,7 +29,8 @@ background `QThread`, while the main thread owns `QApplication` and the `QSystem
 6. `App` passes the raw transcript through a `TextCorrector` when `dictionary_enabled` is true. The corrector applies vocabulary replacements (longest-match, word-boundary aware, case-preserving) before post-processing.
 7. `App` passes the corrected transcript to a `PostProcessor`. The default implementation is a deterministic `TextFormatter`; when `llm_enabled` is true an `LLMPostProcessor` backed by an Ollama LLM is used instead.
 8. `App` passes the post-processed text to `TextInjector`.
-8. `WindowsTextInjector` types the text at the active cursor via `SendInput`, or falls back to clipboard paste when configured.
+9. When `dictionary_learning_enabled` is true, `App` feeds the final injected text to a `VocabularyLearner`, which extracts candidate terms (capitalized compounds, mixed-case identifiers, terms with digits) and persists them once they cross a frequency threshold.
+10. `WindowsTextInjector` types the text at the active cursor via `SendInput`, or falls back to clipboard paste when configured.
 
 In `--dry-run` mode the text is logged instead of injected.
 
@@ -71,6 +72,7 @@ Loguru configuration with console and rotating file sinks.
 - `vocab_manager.py` — `VocabularyManager` merges static, context, and user dictionaries with override priority.
 - `corrector.py` — `TextCorrector` applies vocabulary replacements to raw transcripts using longest-match, word-boundary-aware, case-preserving replacement.
 - `bias.py` — `ASRBias` builds an `initial_prompt` and `hotwords` list from the active context and loaded vocabulary for Whisper ASR biasing.
+- `learning.py` — `VocabularyLearner` records explicit corrections to `data/vocab/corrections.jsonl`, promotes frequent correction pairs to the user dictionary, and extracts recurring candidate terms from dictated text into `data/vocab/term_counts.json`.
 - `context_modes.py` — context-specific starter terms and LLM prompt fragments for `general`, `chat`, `email`, and `code` modes.
 
 ### `src/postprocess/`
@@ -121,8 +123,10 @@ Completed:
 Completed:
 - [x] ASR biasing with dictionary terms (Phase 3 of v0.3).
 
+Completed:
+- [x] Adaptive vocabulary learning (Phase 4 of v0.3).
+
 Planned:
-- [ ] Adaptive vocabulary learning (Phase 4 of v0.3).
 - [ ] UI integration for dictionary and learning (Phase 5 of v0.3).
 - [ ] Streaming ASR and latency optimization (v0.4).
 - [ ] macOS and Linux support (v0.5).

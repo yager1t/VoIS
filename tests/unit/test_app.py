@@ -61,6 +61,7 @@ def app(settings: Settings, mock_vad: MagicMock) -> App:
         patch("src.app.AudioBuffer") as mock_buffer_cls,
         patch("src.app.VocabularyManager") as mock_vocab_cls,
         patch("src.app.TextCorrector") as mock_corrector_cls,
+        patch("src.app.VocabularyLearner") as mock_learner_cls,
     ):
         mock_hotkey = MagicMock()
         mock_hotkey_factory.return_value = mock_hotkey
@@ -75,6 +76,8 @@ def app(settings: Settings, mock_vad: MagicMock) -> App:
         mock_corrector = MagicMock()
         mock_corrector.correct.side_effect = lambda text, context=None: text
         mock_corrector_cls.return_value = mock_corrector
+        mock_learner = MagicMock()
+        mock_learner_cls.return_value = mock_learner
 
         app = App(settings)
         # Expose mocks for assertions
@@ -84,6 +87,7 @@ def app(settings: Settings, mock_vad: MagicMock) -> App:
         app._buffer_mock = mock_buffer
         app._vocab_mock = mock_vocab
         app._corrector_mock = mock_corrector
+        app._learner_mock = mock_learner
         yield app
 
 
@@ -375,3 +379,46 @@ def test_stop_recording_skips_correction_when_dictionary_disabled(app: App) -> N
 
     app._corrector_mock.correct.assert_not_called()
     app.post_processor.process.assert_called_once_with("hello world")
+
+
+def test_stop_recording_learns_from_text_when_enabled(app: App) -> None:
+    """When learning is enabled, stop_recording should feed post-processed text to the learner."""
+    app.settings.dictionary_learning_enabled = True
+
+    audio = np.ones(SAMPLE_RATE, dtype=np.float32)
+    app._buffer_mock.get.return_value = audio
+    app.vad.split_on_silence.return_value = [audio]
+
+    asr_mock = MagicMock()
+    asr_mock.transcribe.return_value.text = "hello kubernetes"
+    app._asr = asr_mock
+    app.post_processor.process = MagicMock(return_value="Hello Kubernetes.")
+
+    app.stop_recording()
+
+    app._learner_mock.learn_from_text.assert_called_once_with("Hello Kubernetes.")
+
+
+def test_stop_recording_skips_learning_when_disabled(app: App) -> None:
+    """When learning is disabled, stop_recording should not call the learner."""
+    app.settings.dictionary_learning_enabled = False
+
+    audio = np.ones(SAMPLE_RATE, dtype=np.float32)
+    app._buffer_mock.get.return_value = audio
+    app.vad.split_on_silence.return_value = [audio]
+
+    asr_mock = MagicMock()
+    asr_mock.transcribe.return_value.text = "hello world"
+    app._asr = asr_mock
+    app.post_processor.process = MagicMock(return_value="Hello world.")
+
+    app.stop_recording()
+
+    app._learner_mock.learn_from_text.assert_not_called()
+
+
+def test_record_correction_delegates_to_learner(app: App) -> None:
+    """App.record_correction should forward to the learner."""
+    app.record_correction("foo", "bar")
+
+    app._learner_mock.record_correction.assert_called_once_with("foo", "bar")
