@@ -32,9 +32,13 @@ class FakeQWidget:
         self._window_title = ""
         self._shown = False
         self._hidden = False
+        self._tool_tip = ""
 
     def setWindowTitle(self, title: str) -> None:
         self._window_title = title
+
+    def setToolTip(self, tip: str) -> None:
+        self._tool_tip = tip
 
     def show(self) -> None:
         self._shown = True
@@ -73,12 +77,19 @@ class FakeQLineEdit:
 class FakeQCheckBox:
     def __init__(self) -> None:
         self._checked = False
+        self._enabled = True
 
     def setChecked(self, checked: bool) -> None:
         self._checked = bool(checked)
 
     def isChecked(self) -> bool:
         return self._checked
+
+    def setEnabled(self, enabled: bool) -> None:
+        self._enabled = enabled
+
+    def setToolTip(self, tip: str) -> None:
+        pass
 
 
 class FakeQComboBox:
@@ -120,6 +131,33 @@ class FakeQDoubleSpinBox:
         return self._value
 
 
+class FakeQSpinBox:
+    def __init__(self) -> None:
+        self._value = 0
+        self._min = 0
+        self._max = 99
+
+    def setRange(self, min_: int, max_: int) -> None:
+        self._min = min_
+        self._max = max_
+
+    def setValue(self, value: int) -> None:
+        self._value = value
+
+    def value(self) -> int:
+        return self._value
+
+
+class FakeQGroupBox(FakeQWidget):
+    def __init__(self, title: str = "") -> None:
+        super().__init__()
+        self._title = title
+        self._layout: object | None = None
+
+    def setLayout(self, layout: object) -> None:
+        self._layout = layout
+
+
 class FakeQTextEdit:
     def __init__(self) -> None:
         self._text = ""
@@ -149,6 +187,8 @@ class FakeQtWidgetsModule:
     QCheckBox = FakeQCheckBox
     QComboBox = FakeQComboBox
     QDoubleSpinBox = FakeQDoubleSpinBox
+    QSpinBox = FakeQSpinBox
+    QGroupBox = FakeQGroupBox
     QTextEdit = FakeQTextEdit
     QPushButton = FakeQPushButton
 
@@ -188,6 +228,12 @@ def settings_window(mock_qt, tmp_path):
         llm_timeout=10.0,
         llm_prompt="Fix this.\nKeep it short.",
         dry_run=True,
+        streaming_enabled=True,
+        streaming_chunk_seconds=2.5,
+        asr_streaming_beam_size=3,
+        asr_warmup_at_start=False,
+        final_transcription_enabled=False,
+        replace_streaming_with_final=True,
         data_dir=tmp_path / "data",
         models_dir=tmp_path / "models",
     )
@@ -215,6 +261,12 @@ def test_window_loads_settings_into_widgets(settings_window) -> None:
     assert settings_window._llm_timeout_spin.value() == 10.0
     assert settings_window._llm_prompt_edit.toPlainText() == "Fix this.\nKeep it short."
     assert settings_window._dry_run_check.isChecked() is True
+    assert settings_window._streaming_enabled_check.isChecked() is True
+    assert settings_window._streaming_chunk_spin.value() == 2.5
+    assert settings_window._asr_streaming_beam_size_spin.value() == 3
+    assert settings_window._asr_warmup_check.isChecked() is False
+    assert settings_window._final_transcription_enabled_check.isChecked() is False
+    assert settings_window._replace_streaming_with_final_check.isChecked() is True
 
 
 def test_save_writes_env_file_with_expected_values(settings_window, tmp_path) -> None:
@@ -233,6 +285,12 @@ def test_save_writes_env_file_with_expected_values(settings_window, tmp_path) ->
     settings_window._llm_timeout_spin.setValue(3.5)
     settings_window._llm_prompt_edit.setPlainText("New prompt.\nTwo lines.")
     settings_window._dry_run_check.setChecked(False)
+    settings_window._streaming_enabled_check.setChecked(False)
+    settings_window._streaming_chunk_spin.setValue(1.0)
+    settings_window._asr_streaming_beam_size_spin.setValue(5)
+    settings_window._asr_warmup_check.setChecked(True)
+    settings_window._final_transcription_enabled_check.setChecked(True)
+    settings_window._replace_streaming_with_final_check.setChecked(False)
 
     signal_handler = MagicMock()
     settings_window.settings_saved.connect(signal_handler)
@@ -256,6 +314,12 @@ def test_save_writes_env_file_with_expected_values(settings_window, tmp_path) ->
     assert "LLM_TIMEOUT=3.5" in env_text
     assert 'LLM_PROMPT="New prompt.\\nTwo lines."' in env_text
     assert "DRY_RUN=false" in env_text
+    assert "STREAMING_ENABLED=false" in env_text
+    assert "STREAMING_CHUNK_SECONDS=1.0" in env_text
+    assert "ASR_STREAMING_BEAM_SIZE=5" in env_text
+    assert "ASR_WARMUP_AT_START=true" in env_text
+    assert "FINAL_TRANSCRIPTION_ENABLED=true" in env_text
+    assert "REPLACE_STREAMING_WITH_FINAL=false" in env_text
 
     signal_handler.assert_called_once()
     saved_settings = signal_handler.call_args[0][0]
@@ -263,6 +327,12 @@ def test_save_writes_env_file_with_expected_values(settings_window, tmp_path) ->
     assert saved_settings.hotkey == "ctrl+f9"
     assert saved_settings.asr_model == "tiny"
     assert saved_settings.llm_prompt == "New prompt.\nTwo lines."
+    assert saved_settings.streaming_enabled is False
+    assert saved_settings.streaming_chunk_seconds == 1.0
+    assert saved_settings.asr_streaming_beam_size == 5
+    assert saved_settings.asr_warmup_at_start is True
+    assert saved_settings.final_transcription_enabled is True
+    assert saved_settings.replace_streaming_with_final is False
 
 
 def test_save_preserves_fields_not_in_ui(settings_window, tmp_path) -> None:

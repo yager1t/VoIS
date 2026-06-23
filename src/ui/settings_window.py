@@ -11,9 +11,11 @@ from PyQt6.QtWidgets import (
     QComboBox,
     QDoubleSpinBox,
     QFormLayout,
+    QGroupBox,
     QHBoxLayout,
     QLineEdit,
     QPushButton,
+    QSpinBox,
     QTextEdit,
     QWidget,
 )
@@ -135,6 +137,39 @@ class SettingsWindow(QWidget):
         self._dry_run_check = QCheckBox()
         self._layout.addRow("Dry-run", self._dry_run_check)
 
+        self._streaming_group = QGroupBox("Streaming ASR")
+        self._streaming_layout = QFormLayout(self._streaming_group)
+
+        self._streaming_enabled_check = QCheckBox()
+        self._streaming_layout.addRow("Enable streaming ASR", self._streaming_enabled_check)
+
+        self._streaming_chunk_spin = QDoubleSpinBox()
+        self._streaming_chunk_spin.setRange(0.5, 5.0)
+        self._streaming_chunk_spin.setDecimals(1)
+        self._streaming_chunk_spin.setSingleStep(0.5)
+        self._streaming_layout.addRow("Streaming chunk (s)", self._streaming_chunk_spin)
+
+        self._asr_streaming_beam_size_spin = QSpinBox()
+        self._asr_streaming_beam_size_spin.setRange(1, 10)
+        self._streaming_layout.addRow("Streaming beam size", self._asr_streaming_beam_size_spin)
+
+        self._asr_warmup_check = QCheckBox()
+        self._streaming_layout.addRow("Warmup ASR at start", self._asr_warmup_check)
+
+        self._final_transcription_enabled_check = QCheckBox()
+        self._streaming_layout.addRow(
+            "Enable final transcription", self._final_transcription_enabled_check
+        )
+
+        self._replace_streaming_with_final_check = QCheckBox()
+        self._replace_streaming_with_final_check.setEnabled(False)
+        self._replace_streaming_with_final_check.setToolTip("Reserved for future use.")
+        self._streaming_layout.addRow(
+            "Replace streaming with final (reserved)", self._replace_streaming_with_final_check
+        )
+
+        self._layout.addRow(self._streaming_group)
+
         self._vocab_editor: Any | None = None
 
         self._button_layout = QHBoxLayout()
@@ -172,6 +207,12 @@ class SettingsWindow(QWidget):
         self._llm_timeout_spin.setValue(settings.llm_timeout)
         self._llm_prompt_edit.setPlainText(settings.llm_prompt)
         self._dry_run_check.setChecked(settings.dry_run)
+        self._streaming_enabled_check.setChecked(settings.streaming_enabled)
+        self._streaming_chunk_spin.setValue(settings.streaming_chunk_seconds)
+        self._asr_streaming_beam_size_spin.setValue(settings.asr_streaming_beam_size)
+        self._asr_warmup_check.setChecked(settings.asr_warmup_at_start)
+        self._final_transcription_enabled_check.setChecked(settings.final_transcription_enabled)
+        self._replace_streaming_with_final_check.setChecked(settings.replace_streaming_with_final)
 
     def _collect_values(self) -> dict[str, object]:
         """Return a dict of updated settings values from widgets."""
@@ -190,6 +231,12 @@ class SettingsWindow(QWidget):
             "llm_timeout": self._llm_timeout_spin.value(),
             "llm_prompt": self._llm_prompt_edit.toPlainText(),
             "dry_run": self._dry_run_check.isChecked(),
+            "streaming_enabled": self._streaming_enabled_check.isChecked(),
+            "streaming_chunk_seconds": self._streaming_chunk_spin.value(),
+            "asr_streaming_beam_size": self._asr_streaming_beam_size_spin.value(),
+            "asr_warmup_at_start": self._asr_warmup_check.isChecked(),
+            "final_transcription_enabled": self._final_transcription_enabled_check.isChecked(),
+            "replace_streaming_with_final": self._replace_streaming_with_final_check.isChecked(),
         }
 
     def _on_save(self) -> None:
@@ -197,6 +244,8 @@ class SettingsWindow(QWidget):
         data = self.settings.model_dump()
         data.update(self._collect_values())
         self.settings = Settings(**data)
+        if hasattr(self.settings, "save") and callable(self.settings.save):
+            self.settings.save()
         _write_env_file(self.env_file, self.settings)
         self.settings_saved.emit(self.settings)
         self.hide()
