@@ -3,12 +3,14 @@
 This document describes the current architecture of the Voice-to-Cursor AI Dictation System.
 
 For the original product brief, see [`voice_to_cursor_prompt.md`](../voice_to_cursor_prompt.md).  
-For the approved implementation plan, see [`C:\Users\Jury\.kimi\plans\aquaman-phantom-stranger-rictor.md`](file:///C:/Users/Jury/.kimi/plans/aquaman-phantom-stranger-rictor.md).  
+For the approved implementation plan, see [`C:\Users\Jury\.kimi\plans\groot-fantomex-mister-terrific.md`](file:///C:/Users/Jury/.kimi/plans/groot-fantomex-mister-terrific.md).  
 For day-to-day safety rules when editing or running commands, see [`docs/ai_working_guide.md`](ai_working_guide.md).
 
 ## Current status
 
 The MVP is complete and working on Windows. All v0.2 phases are implemented: LLM post-processing (Phase 1), system tray icon (Phase 2), settings window (Phase 3), and recording indicator/notifications (Phase 4). Phase 5 finalized integration, documentation, and version bump.
+
+All v0.3 phases are also implemented and released: dictionary storage and context modes (Phase 1), transcript correction (Phase 2), ASR biasing (Phase 3), adaptive vocabulary learning (Phase 4), dictionary UI integration (Phase 5), and final integration, documentation, and version bump (Phase 6).
 
 The critical path is implemented end-to-end:
 

@@ -95,41 +95,50 @@ pytest tests/ -m requires_model --timeout=300
 
 ## Current coverage
 
-Coverage captured on 2026-06-22 after completing Phase 5 of v0.2 (final integration, documentation, and version bump).
+Coverage captured on 2026-06-22 after completing Phase 6 of v0.3 (final integration, documentation, and version bump).
 
-| Name                             | Stmts | Miss | Branch | BrPart | Cover |
-|----------------------------------|------:|-----:|-------:|-------:|------:|
-| `src\__init__.py`                |     1 |    0 |      0 |      0 |  100% |
-| `src\app.py`                     |   121 |    6 |     28 |      3 |   94% |
-| `src\asr\__init__.py`            |     4 |    0 |      0 |      0 |  100% |
-| `src\asr\base.py`                |    20 |    0 |      0 |      0 |  100% |
-| `src\asr\model_manager.py`       |    38 |    4 |      8 |      0 |   91% |
-| `src\asr\whisper_provider.py`    |    47 |    0 |      8 |      1 |   98% |
-| `src\audio\__init__.py`          |     4 |    0 |      0 |      0 |  100% |
-| `src\audio\buffer.py`            |    51 |    5 |     16 |      4 |   87% |
-| `src\audio\capture.py`           |    77 |    1 |     20 |      2 |   97% |
-| `src\audio\vad.py`               |    59 |    0 |     18 |      0 |  100% |
-| `src\config.py`                  |    30 |    0 |      0 |      0 |  100% |
-| `src\hotkey\__init__.py`         |     9 |    0 |      0 |      0 |  100% |
-| `src\hotkey\base.py`             |    32 |    1 |      6 |      1 |   95% |
-| `src\hotkey\windows.py`          |    97 |   13 |     36 |      8 |   80% |
-| `src\injection\__init__.py`      |     9 |    0 |      0 |      0 |  100% |
-| `src\injection\base.py`          |    10 |    0 |      0 |      0 |  100% |
-| `src\injection\windows.py`       |    69 |    5 |     22 |      6 |   88% |
-| `src\logging_config.py`          |    12 |    0 |      0 |      0 |  100% |
-| `src\main.py`                    |    88 |    7 |     16 |      1 |   92% |
-| `src\postprocess\__init__.py`    |    10 |    0 |      2 |      0 |  100% |
-| `src\postprocess\base.py`        |     5 |    0 |      0 |      0 |  100% |
-| `src\postprocess\formatter.py`   |    13 |    0 |      4 |      0 |  100% |
-| `src\postprocess\llm_client.py`  |    27 |    0 |      0 |      0 |  100% |
-| `src\ui\__init__.py`             |     4 |    0 |      0 |      0 |  100% |
-| `src\ui\settings_window.py`      |    90 |    0 |      6 |      0 |  100% |
-| `src\ui\tray.py`                 |    66 |    0 |     12 |      2 |   97% |
-| **TOTAL**                        | **1006** | **42** | **204** | **28** | **94%** |
+| Name                              | Stmts | Miss | Branch | BrPart | Cover |
+|-----------------------------------|------:|-----:|-------:|-------:|------:|
+| `src\__init__.py`                 |     1 |    0 |      0 |      0 |  100% |
+| `src\app.py`                      |   135 |    6 |     32 |      3 |   95% |
+| `src\asr\__init__.py`             |     4 |    0 |      0 |      0 |  100% |
+| `src\asr\base.py`                 |    20 |    0 |      0 |      0 |  100% |
+| `src\asr\model_manager.py`        |    38 |    4 |      8 |      0 |   91% |
+| `src\asr\whisper_provider.py`     |    67 |    0 |     16 |      2 |   98% |
+| `src\audio\__init__.py`           |     4 |    0 |      0 |      0 |  100% |
+| `src\audio\buffer.py`             |    51 |    5 |     16 |      4 |   87% |
+| `src\audio\capture.py`            |    77 |    1 |     20 |      2 |   97% |
+| `src\audio\vad.py`                |    59 |    0 |     18 |      0 |  100% |
+| `src\config.py`                   |    35 |    0 |      0 |      0 |  100% |
+| `src\dictionary\__init__.py`      |     7 |    0 |      0 |      0 |  100% |
+| `src\dictionary\base.py`          |    19 |    0 |      0 |      0 |  100% |
+| `src\dictionary\bias.py`          |    49 |    0 |     16 |      2 |   97% |
+| `src\dictionary\context_modes.py` |    14 |    0 |      0 |      0 |  100% |
+| `src\dictionary\corrector.py`     |    36 |    1 |     14 |      1 |   96% |
+| `src\dictionary\learning.py`      |   114 |   11 |     36 |      6 |   89% |
+| `src\dictionary\storage.py`       |    44 |    4 |     12 |      2 |   89% |
+| `src\dictionary\vocab_manager.py` |    61 |    1 |     18 |      3 |   95% |
+| `src\hotkey\__init__.py`          |     9 |    0 |      0 |      0 |  100% |
+| `src\hotkey\base.py`              |    32 |    1 |      6 |      1 |   95% |
+| `src\hotkey\windows.py`           |    97 |   13 |     36 |      8 |   80% |
+| `src\injection\__init__.py`       |     9 |    0 |      0 |      0 |  100% |
+| `src\injection\base.py`           |    10 |    0 |      0 |      0 |  100% |
+| `src\injection\windows.py`        |    69 |    5 |     22 |      6 |   88% |
+| `src\logging_config.py`           |    12 |    0 |      0 |      0 |  100% |
+| `src\main.py`                     |    91 |    7 |     16 |      1 |   93% |
+| `src\postprocess\__init__.py`     |    10 |    0 |      2 |      0 |  100% |
+| `src\postprocess\base.py`         |     5 |    0 |      0 |      0 |  100% |
+| `src\postprocess\formatter.py`    |    13 |    0 |      4 |      0 |  100% |
+| `src\postprocess\llm_client.py`   |    27 |    0 |      0 |      0 |  100% |
+| `src\ui\__init__.py`              |     5 |    0 |      0 |      0 |  100% |
+| `src\ui\settings_window.py`       |   112 |    0 |      8 |      0 |  100% |
+| `src\ui\tray.py`                  |    79 |    1 |     18 |      4 |   95% |
+| `src\ui\vocab_editor.py`          |   114 |    9 |     26 |      9 |   87% |
+| **TOTAL**                         | **1529** | **69** | **344** | **54** | **93%** |
 
-The overall code coverage is **94%** (93.64% precise), exceeding the configured `fail_under = 80`
-threshold. There are **155 unit tests**, **7 integration tests**, and **1 smoke
-test (163 total); the safe suites complete in under two seconds.
+The overall code coverage is **93%** (93.11% precise), exceeding the configured `fail_under = 80`
+threshold. There are **223 unit tests**, **7 integration tests**, and **1 smoke
+test (231 total); the safe suites complete in under two seconds.
 
 ## CI
 

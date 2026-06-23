@@ -12,6 +12,8 @@ Local-first Windows desktop dictation: press a global hotkey, speak, and get cle
 - Settings window for hotkey, model, language, device, LLM options, and dry-run mode.
 - Recording indicator via tray icon tooltip and balloon notifications.
 - Windows text injection via `SendInput` with optional clipboard fallback.
+- **v0.3 — Dictionary & vocabulary learning:** context-aware vocabularies, transcript correction, ASR hotword biasing, adaptive term learning, and a vocabulary editor / correction dialog.
+- Context modes (`general`, `chat`, `email`, `code`) tune vocabulary and post-processing for the current task.
 - Dry-run mode for safe testing.
 
 > **Platform note:** The MVP is Windows-only. macOS and Linux support are planned for a later phase.
@@ -60,6 +62,26 @@ python -m src.main --model base --language en --device cpu --hotkey f10 --dry-ru
 | `--llm-enabled` | Enable LLM post-processing (also controlled by `.env`). |
 | `--llm-model NAME` | Ollama model name for post-processing, e.g. `llama3`. |
 
+## Dictionary setup
+
+v0.3 adds a local dictionary layer that improves recognition and spelling of domain-specific terms.
+
+1. Enable the dictionary and choose a context mode in `.env` or the settings window:
+
+   ```env
+   CONTEXT_MODE=code
+   DICTIONARY_ENABLED=true
+   DICTIONARY_LEARNING_ENABLED=false
+   ```
+
+   - `CONTEXT_MODE` — `general`, `chat`, `email`, or `code`. Each mode loads a context-specific vocabulary and changes the LLM prompt fragment used for post-processing.
+   - `DICTIONARY_ENABLED` — when `true`, raw transcripts are corrected against the merged vocabulary and ASR receives hotword bias for dictionary terms.
+   - `DICTIONARY_LEARNING_ENABLED` — when `true`, the app records explicit corrections from the tray "Add correction..." dialog and promotes frequently seen terms to `data/vocab/user.json`.
+
+2. Edit user vocabulary through **Settings → Open vocabulary editor**. Add domain terms, acronyms, or mixed-case identifiers (for example, `VoIS`, `PyQt6`, `sendInput`).
+
+3. For one-off mistakes, use the tray **Add correction...** action to record the original ASR output and the intended text.
+
 ## LLM setup
 
 LLM post-processing is optional and runs through a local Ollama server.
@@ -107,7 +129,7 @@ mypy src
 pytest tests/unit tests/integration -m "not smoke and not slow and not requires_model" --cov=src --cov-fail-under=80 --timeout=60
 ```
 
-The project currently has **155 unit tests**, **7 integration tests**, and **1 smoke test** (163 total) with **94% code coverage**.
+The project currently has **223 unit tests**, **7 integration tests**, and **1 smoke test** (231 total) with **93% code coverage**.
 
 AI assistants should read [`docs/ai_working_guide.md`](docs/ai_working_guide.md)
 before running commands or editing code. The guide documents the safe test
