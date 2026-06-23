@@ -1,6 +1,6 @@
 [project]
 name = "voice-to-cursor"
-version = "0.5.0"
+version = "0.6.0"
 description = "Local-first desktop app for AI-powered voice dictation at the cursor."
 requires-python = ">=3.11"
 license = { text = "MIT" }

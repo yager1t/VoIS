@@ -12,6 +12,8 @@ The MVP is complete and working on Windows. All v0.2 phases are implemented: LLM
 
 All v0.3 phases are also implemented and released: dictionary storage and context modes (Phase 1), transcript correction (Phase 2), ASR biasing (Phase 3), adaptive vocabulary learning (Phase 4), dictionary UI integration (Phase 5), and final integration, documentation, and version bump (Phase 6).
 
+All v0.4 phases are now implemented and released: streaming audio buffer and streaming transcriber (Phase 1), App integration with ASR warmup (Phase 2), background final transcription (Phase 3), streaming settings UI (Phase 4), latency benchmark harness (Phase 5), and final integration, documentation, and version bump (Phase 6).
+
 The critical path is implemented end-to-end:
 
 ```
@@ -150,10 +152,11 @@ Completed:
 
 Completed:
 - [x] Streaming audio buffer and streaming transcriber (Phase 1 of v0.4).
+- [x] Integrate streaming into App and add ASR warmup (Phase 2 of v0.4).
+- [x] Background final transcription after streaming (Phase 3 of v0.4).
+- [x] Streaming ASR settings UI (Phase 4 of v0.4).
+- [x] Latency benchmark harness for streaming vs batch ASR (Phase 5 of v0.4).
+- [x] Final integration, documentation, and version bump (Phase 6 of v0.4).
 
-In progress:
-- [ ] Integrate streaming into App and add ASR warmup (Phase 2 of v0.4).
-
-Planned:
-- [ ] Remaining v0.4 latency and quality improvements.
-- [ ] macOS and Linux support (v0.5).
+Planned (v0.5):
+- [ ] macOS and Linux support.

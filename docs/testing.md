@@ -27,13 +27,13 @@ Python workers.
 To run unit tests and integration tests and print a missing-line coverage report:
 
 ```bash
-pytest tests/unit tests/integration -m "not smoke and not slow and not requires_model" --cov=src --cov-report=term-missing --timeout=60
+pytest tests/unit tests/integration -m "not smoke and not slow and not requires_model" --cov=src --cov=benchmarks --cov-report=term-missing --timeout=60
 ```
 
 To also generate an HTML coverage report:
 
 ```bash
-pytest tests/unit tests/integration --cov=src --cov-report=term-missing --cov-report=html
+pytest tests/unit tests/integration --cov=src --cov=benchmarks --cov-report=term-missing --cov-report=html
 ```
 
 Alternatively use the convenience scripts:
@@ -95,21 +95,27 @@ pytest tests/ -m requires_model --timeout=300
 
 ## Current coverage
 
-Coverage captured on 2026-06-22 after completing Phase 6 of v0.3 (final integration, documentation, and version bump).
+Coverage captured on 2026-06-22 after completing Phase 6 of v0.4 (final integration, documentation, and version bump).
 
 | Name                              | Stmts | Miss | Branch | BrPart | Cover |
 |-----------------------------------|------:|-----:|-------:|-------:|------:|
+| `benchmarks\run_latency.py`       |    61 |    5 |     14 |      2 |   91% |
 | `src\__init__.py`                 |     1 |    0 |      0 |      0 |  100% |
-| `src\app.py`                      |   135 |    6 |     32 |      3 |   95% |
+| `src\app.py`                      |   186 |   10 |     54 |      7 |   93% |
 | `src\asr\__init__.py`             |     4 |    0 |      0 |      0 |  100% |
-| `src\asr\base.py`                 |    20 |    0 |      0 |      0 |  100% |
+| `src\asr\base.py`                 |    22 |    0 |      0 |      0 |  100% |
+| `src\asr\final_transcriber.py`    |    47 |    3 |      8 |      1 |   93% |
 | `src\asr\model_manager.py`        |    38 |    4 |      8 |      0 |   91% |
-| `src\asr\whisper_provider.py`     |    67 |    0 |     16 |      2 |   98% |
+| `src\asr\streaming.py`            |    93 |    4 |     24 |      2 |   95% |
+| `src\asr\whisper_provider.py`     |    71 |    0 |     16 |      2 |   98% |
 | `src\audio\__init__.py`           |     4 |    0 |      0 |      0 |  100% |
 | `src\audio\buffer.py`             |    51 |    5 |     16 |      4 |   87% |
 | `src\audio\capture.py`            |    77 |    1 |     20 |      2 |   97% |
+| `src\audio\streaming_buffer.py`   |    49 |    0 |     12 |      0 |  100% |
 | `src\audio\vad.py`                |    59 |    0 |     18 |      0 |  100% |
-| `src\config.py`                   |    35 |    0 |      0 |      0 |  100% |
+| `src\benchmarks\__init__.py`      |     0 |    0 |      0 |      0 |  100% |
+| `src\benchmarks\latency.py`       |   115 |    4 |     14 |      0 |   97% |
+| `src\config.py`                   |    41 |    0 |      0 |      0 |  100% |
 | `src\dictionary\__init__.py`      |     7 |    0 |      0 |      0 |  100% |
 | `src\dictionary\base.py`          |    19 |    0 |      0 |      0 |  100% |
 | `src\dictionary\bias.py`          |    49 |    0 |     16 |      2 |   97% |
@@ -131,14 +137,14 @@ Coverage captured on 2026-06-22 after completing Phase 6 of v0.3 (final integrat
 | `src\postprocess\formatter.py`    |    13 |    0 |      4 |      0 |  100% |
 | `src\postprocess\llm_client.py`   |    27 |    0 |      0 |      0 |  100% |
 | `src\ui\__init__.py`              |     5 |    0 |      0 |      0 |  100% |
-| `src\ui\settings_window.py`       |   112 |    0 |      8 |      0 |  100% |
+| `src\ui\settings_window.py`       |   141 |    1 |     10 |      1 |   99% |
 | `src\ui\tray.py`                  |    79 |    1 |     18 |      4 |   95% |
 | `src\ui\vocab_editor.py`          |   114 |    9 |     26 |      9 |   87% |
-| **TOTAL**                         | **1529** | **69** | **344** | **54** | **93%** |
+| **TOTAL**                         | **1986** | **90** | **440** | **64** | **93%** |
 
-The overall code coverage is **93%** (93.11% precise), exceeding the configured `fail_under = 80`
-threshold. There are **223 unit tests**, **7 integration tests**, and **1 smoke
-test (231 total); the safe suites complete in under two seconds.
+The overall code coverage is **93.40%**, exceeding the configured `fail_under = 80`
+threshold. There are **279 unit tests**, **7 integration tests**, and **1 smoke
+test (287 total); the safe suites complete in under five seconds.
 
 ## CI
 

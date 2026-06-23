@@ -171,8 +171,7 @@ class FasterWhisperProvider(ASRProvider):
     ) -> TranscriptionResult:
         """Return a final transcription for a streaming chunk.
 
-        Streaming partial transcripts will be implemented in a future version;
-        for now this delegates to :meth:`transcribe`.
+        This provider delegates to :meth:`transcribe` for each chunk.
 
         Args:
             audio_chunk: One-dimensional ``float32`` audio samples.

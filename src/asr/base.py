@@ -74,8 +74,8 @@ class ASRProvider(ABC):
     ) -> TranscriptionResult:
         """Process a streaming audio chunk and return an incremental result.
 
-        The default implementation returns a final transcription for the chunk.
-        Streaming partial transcripts will be implemented in a future version.
+        Providers that do not support incremental decoding may delegate to
+        :meth:`transcribe` and return a final result for the chunk.
 
         Args:
             audio_chunk: One-dimensional ``float32`` audio samples.

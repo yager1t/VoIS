@@ -13,6 +13,7 @@ Local-first Windows desktop dictation: press a global hotkey, speak, and get cle
 - Recording indicator via tray icon tooltip and balloon notifications.
 - Windows text injection via `SendInput` with optional clipboard fallback.
 - **v0.3 — Dictionary & vocabulary learning:** context-aware vocabularies, transcript correction, ASR hotword biasing, adaptive term learning, and a vocabulary editor / correction dialog.
+- **v0.4 — Streaming ASR & model warmup:** incremental transcription while the hotkey is held, optional ASR model warmup at start, and background final transcription for improved accuracy.
 - Context modes (`general`, `chat`, `email`, `code`) tune vocabulary and post-processing for the current task.
 - Dry-run mode for safe testing.
 
@@ -43,6 +44,18 @@ python -m src.main
 ```
 
 Hold `f9`, speak, and release to insert the transcription at the cursor.
+
+### Enabling streaming ASR
+
+Streaming is off by default. Enable it through **Settings → Streaming ASR** or in your `.env` file:
+
+```env
+STREAMING_ENABLED=true
+STREAMING_CHUNK_SECONDS=1.0
+ASR_WARMUP_AT_START=true
+```
+
+When streaming is enabled, partial transcripts appear while you hold the hotkey. After release, a background final transcription can refine the result.
 
 ## CLI options
 
@@ -126,10 +139,10 @@ See [`docs/architecture.md`](docs/architecture.md) for a high-level overview.
 ```bash
 ruff check src tests
 mypy src
-pytest tests/unit tests/integration -m "not smoke and not slow and not requires_model" --cov=src --cov-fail-under=80 --timeout=60
+pytest tests/unit tests/integration -m "not smoke and not slow and not requires_model" --cov=src --cov=benchmarks --timeout=60
 ```
 
-The project currently has **223 unit tests**, **7 integration tests**, and **1 smoke test** (231 total) with **93% code coverage**.
+The project currently has **279 unit tests**, **7 integration tests**, and **1 smoke test** (287 total) with **93.40% code coverage**.
 
 AI assistants should read [`docs/ai_working_guide.md`](docs/ai_working_guide.md)
 before running commands or editing code. The guide documents the safe test
