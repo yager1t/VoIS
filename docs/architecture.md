@@ -13,7 +13,7 @@ The MVP is complete and working on Windows. All v0.2 phases are implemented: LLM
 The critical path is implemented end-to-end:
 
 ```
-Global hotkey  →  Audio capture  →  VAD trim  →  ASR (faster-whisper)  →  Post-processing  →  Text injection
+Global hotkey  →  Audio capture  →  VAD trim  →  ASR (faster-whisper)  →  Text correction  →  Post-processing  →  Text injection
 ```
 
 The application now runs with a Qt event loop. `App` executes its hotkey/audio loop in a
@@ -26,8 +26,9 @@ background `QThread`, while the main thread owns `QApplication` and the `QSystem
 3. While the key is held, `AudioCapture` streams microphone chunks into `AudioBuffer`.
 4. On release, `App` stops capture, runs VAD-based silence trimming, and sends the trimmed audio to `ASRProvider`.
 5. `FasterWhisperProvider` transcribes the audio (model is lazy-loaded on first use).
-6. `App` passes the raw transcript to a `PostProcessor`. The default implementation is a deterministic `TextFormatter`; when `llm_enabled` is true an `LLMPostProcessor` backed by an Ollama LLM is used instead.
-7. `App` passes the post-processed text to `TextInjector`.
+6. `App` passes the raw transcript through a `TextCorrector` when `dictionary_enabled` is true. The corrector applies vocabulary replacements (longest-match, word-boundary aware, case-preserving) before post-processing.
+7. `App` passes the corrected transcript to a `PostProcessor`. The default implementation is a deterministic `TextFormatter`; when `llm_enabled` is true an `LLMPostProcessor` backed by an Ollama LLM is used instead.
+8. `App` passes the post-processed text to `TextInjector`.
 8. `WindowsTextInjector` types the text at the active cursor via `SendInput`, or falls back to clipboard paste when configured.
 
 In `--dry-run` mode the text is logged instead of injected.
@@ -63,6 +64,13 @@ Loguru configuration with console and rotating file sinks.
 ### `src/hotkey/`
 - `base.py` — `HotkeyManager` interface and `parse_hotkey` helper.
 - `windows.py` — `PynputHotkeyManager` implements global hotkeys on Windows using `pynput`, supporting push-to-talk and toggle modes.
+
+### `src/dictionary/`
+- `base.py` — `DictionaryEntry`, `VocabularySource`, and `ContextMode` data models.
+- `storage.py` — `VocabularyStorage` loads and saves JSON vocabulary files (`static.json`, `user.json`, `context_*.json`).
+- `vocab_manager.py` — `VocabularyManager` merges static, context, and user dictionaries with override priority.
+- `corrector.py` — `TextCorrector` applies vocabulary replacements to raw transcripts using longest-match, word-boundary-aware, case-preserving replacement.
+- `context_modes.py` — context-specific starter terms and LLM prompt fragments for `general`, `chat`, `email`, and `code` modes.
 
 ### `src/postprocess/`
 - `base.py` — `PostProcessor` interface with `process(text, context)`.
@@ -105,7 +113,13 @@ Completed:
 - [x] Recording indicator and dictation notifications (Phase 4 of v0.2).
 - [x] Final integration, documentation, and version bump (Phase 5 of v0.2).
 
+Completed:
+- [x] Dictionary storage, context modes, and vocabulary manager (Phase 1 of v0.3).
+- [x] Text correction layer from dictionary (Phase 2 of v0.3).
+
 Planned:
-- [ ] User dictionary and adaptive learning (v0.3).
+- [ ] ASR biasing with dictionary terms (Phase 3 of v0.3).
+- [ ] Adaptive vocabulary learning (Phase 4 of v0.3).
+- [ ] UI integration for dictionary and learning (Phase 5 of v0.3).
 - [ ] Streaming ASR and latency optimization (v0.4).
 - [ ] macOS and Linux support (v0.5).

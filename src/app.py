@@ -13,6 +13,8 @@ from src.audio.buffer import AudioBuffer
 from src.audio.capture import AudioCapture
 from src.audio.vad import WebRTCVADProvider
 from src.config import Settings
+from src.dictionary import TextCorrector, VocabularyManager
+from src.dictionary.context_modes import parse_context_mode
 from src.hotkey import create_hotkey_manager
 from src.injection import WindowsTextInjector, create_text_injector
 from src.postprocess import create_post_processor
@@ -84,6 +86,9 @@ class App:
         if isinstance(self.injector, WindowsTextInjector):
             self.injector.fallback_to_clipboard = settings.injection_fallback_to_clipboard
         self.post_processor = create_post_processor(settings)
+        self.dictionary = VocabularyManager(settings)
+        self.dictionary.load_all()
+        self.corrector = TextCorrector(self.dictionary)
         self._asr: ASRProvider | None = None
         self.vad = self._create_vad()
         on_press = self.start_recording if settings.push_to_talk else self.toggle_recording
@@ -171,6 +176,10 @@ class App:
             prepared = self._prepare_audio(audio)
             if prepared.size > 0:
                 text = self.transcribe_audio(prepared)
+                if self.settings.dictionary_enabled:
+                    context_mode = parse_context_mode(self.settings.context_mode)
+                    text = self.corrector.correct(text, context_mode)
+                    logger.info("Corrected text: {}", text)
                 text = self.post_processor.process(text)
                 logger.info("Post-processed text: {}", text)
                 self.inject_text(text)

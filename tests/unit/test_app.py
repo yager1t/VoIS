@@ -9,6 +9,7 @@ import pytest
 
 from src.app import App, trim_silence
 from src.config import Settings
+from src.dictionary.base import ContextMode
 
 SAMPLE_RATE = 16000
 
@@ -19,6 +20,7 @@ def settings(tmp_path) -> Settings:
     return Settings(
         data_dir=tmp_path / "data",
         models_dir=tmp_path / "models",
+        vocab_dir=tmp_path / "vocab",
     )
 
 
@@ -57,6 +59,8 @@ def app(settings: Settings, mock_vad: MagicMock) -> App:
         patch("src.app.create_text_injector") as mock_injector_factory,
         patch("src.app.AudioCapture") as mock_capture_cls,
         patch("src.app.AudioBuffer") as mock_buffer_cls,
+        patch("src.app.VocabularyManager") as mock_vocab_cls,
+        patch("src.app.TextCorrector") as mock_corrector_cls,
     ):
         mock_hotkey = MagicMock()
         mock_hotkey_factory.return_value = mock_hotkey
@@ -66,6 +70,11 @@ def app(settings: Settings, mock_vad: MagicMock) -> App:
         mock_capture_cls.return_value = mock_capture
         mock_buffer = MagicMock()
         mock_buffer_cls.return_value = mock_buffer
+        mock_vocab = MagicMock()
+        mock_vocab_cls.return_value = mock_vocab
+        mock_corrector = MagicMock()
+        mock_corrector.correct.side_effect = lambda text, context=None: text
+        mock_corrector_cls.return_value = mock_corrector
 
         app = App(settings)
         # Expose mocks for assertions
@@ -73,6 +82,8 @@ def app(settings: Settings, mock_vad: MagicMock) -> App:
         app._injector_mock = mock_injector
         app._capture_mock = mock_capture
         app._buffer_mock = mock_buffer
+        app._vocab_mock = mock_vocab
+        app._corrector_mock = mock_corrector
         yield app
 
 
@@ -130,6 +141,7 @@ def test_stop_recording_transcribes_and_injects(app: App, settings: Settings) ->
     app._capture_mock.stop.assert_called_once()
     app._buffer_mock.clear.assert_called_once()
     asr_mock.transcribe.assert_called_once()
+    app._corrector_mock.correct.assert_called_once_with("hello world", ContextMode.general)
     app.post_processor.process.assert_called_once_with("hello world")
     app._injector_mock.inject_with_delay.assert_called_once_with(
         "Hello world.",
@@ -323,3 +335,43 @@ def test_stop_called_on_exception_in_start(app: App) -> None:
     app._hotkey_mock.stop.assert_called_once()
     app._capture_mock.stop.assert_called_once()
     assert app._running is False
+
+
+def test_stop_recording_corrects_when_dictionary_enabled(app: App) -> None:
+    """When dictionary_enabled is true, stop_recording should run the corrector."""
+    app.settings.dictionary_enabled = True
+    app._corrector_mock.correct.side_effect = None
+    app._corrector_mock.correct.return_value = "corrected hello world"
+
+    audio = np.ones(SAMPLE_RATE, dtype=np.float32)
+    app._buffer_mock.get.return_value = audio
+    app.vad.split_on_silence.return_value = [audio]
+
+    asr_mock = MagicMock()
+    asr_mock.transcribe.return_value.text = "hello world"
+    app._asr = asr_mock
+    app.post_processor.process = MagicMock(return_value="Corrected hello world.")
+
+    app.stop_recording()
+
+    app._corrector_mock.correct.assert_called_once_with("hello world", ContextMode.general)
+    app.post_processor.process.assert_called_once_with("corrected hello world")
+
+
+def test_stop_recording_skips_correction_when_dictionary_disabled(app: App) -> None:
+    """When dictionary_enabled is false, stop_recording should skip the corrector."""
+    app.settings.dictionary_enabled = False
+
+    audio = np.ones(SAMPLE_RATE, dtype=np.float32)
+    app._buffer_mock.get.return_value = audio
+    app.vad.split_on_silence.return_value = [audio]
+
+    asr_mock = MagicMock()
+    asr_mock.transcribe.return_value.text = "hello world"
+    app._asr = asr_mock
+    app.post_processor.process = MagicMock(return_value="Hello world.")
+
+    app.stop_recording()
+
+    app._corrector_mock.correct.assert_not_called()
+    app.post_processor.process.assert_called_once_with("hello world")
