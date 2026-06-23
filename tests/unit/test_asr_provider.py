@@ -54,6 +54,15 @@ def fake_model() -> MagicMock:
     return model
 
 
+@pytest.fixture
+def mock_bias() -> MagicMock:
+    """Return a mock ASRBias that provides non-empty prompt and hotwords."""
+    bias = MagicMock()
+    bias.initial_prompt.return_value = "Transcribe a formal email. Important terms: OAuth."
+    bias.hotwords.return_value = ["OAuth", "gRPC"]
+    return bias
+
+
 def test_transcribe_returns_expected_text(
     settings: Settings,
     fake_model: MagicMock,
@@ -208,3 +217,43 @@ def test_transcribe_handles_exception_and_cleans_up(settings: Settings) -> None:
 
     assert written_path is not None
     assert not written_path.exists()
+
+
+def test_transcribe_passes_bias_when_dictionary_enabled(
+    settings: Settings,
+    fake_model: MagicMock,
+    mock_bias: MagicMock,
+) -> None:
+    """When dictionary is enabled, bias hints are passed to the model."""
+    settings.dictionary_enabled = True
+    provider = FasterWhisperProvider(settings)
+
+    with (
+        patch.object(provider, "_model", fake_model),
+        patch.object(provider, "_get_bias", return_value=mock_bias),
+    ):
+        provider.transcribe(np.zeros(SAMPLE_RATE, dtype=np.float32), SAMPLE_RATE)
+
+    _, kwargs = fake_model.transcribe.call_args
+    assert kwargs["initial_prompt"] == "Transcribe a formal email. Important terms: OAuth."
+    assert kwargs["hotwords"] == "OAuth,gRPC"
+
+
+def test_transcribe_does_not_pass_bias_when_dictionary_disabled(
+    settings: Settings,
+    fake_model: MagicMock,
+    mock_bias: MagicMock,
+) -> None:
+    """When dictionary is disabled, bias hints are not passed to the model."""
+    settings.dictionary_enabled = False
+    provider = FasterWhisperProvider(settings)
+
+    with (
+        patch.object(provider, "_model", fake_model),
+        patch.object(provider, "_get_bias", return_value=mock_bias),
+    ):
+        provider.transcribe(np.zeros(SAMPLE_RATE, dtype=np.float32), SAMPLE_RATE)
+
+    _, kwargs = fake_model.transcribe.call_args
+    assert "initial_prompt" not in kwargs
+    assert "hotwords" not in kwargs

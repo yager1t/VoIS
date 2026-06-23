@@ -17,6 +17,8 @@ from src.config import Settings
 if TYPE_CHECKING:  # pragma: no cover
     from faster_whisper import WhisperModel
 
+    from src.dictionary.bias import ASRBias
+
 
 class FasterWhisperProvider(ASRProvider):
     """ASR provider using ``faster-whisper.WhisperModel``.
@@ -35,6 +37,20 @@ class FasterWhisperProvider(ASRProvider):
         self._model: WhisperModel | None = None
         self._model_manager = ModelManager(settings)
         self._model_name = settings.asr_model
+        self._bias: ASRBias | None = None
+
+    def _get_bias(self) -> ASRBias:
+        """Lazy initializer for the ASR bias helper."""
+        if self._bias is None:
+            from src.dictionary.bias import ASRBias
+            from src.dictionary.context_modes import parse_context_mode
+            from src.dictionary.vocab_manager import VocabularyManager
+
+            vocab_manager = VocabularyManager(self.settings)
+            vocab_manager.set_context_mode(parse_context_mode(self.settings.context_mode))
+            vocab_manager.load_all()
+            self._bias = ASRBias(vocab_manager, self.settings)
+        return self._bias
 
     def load_model(self) -> None:
         """Load the faster-whisper model into memory."""
@@ -84,11 +100,24 @@ class FasterWhisperProvider(ASRProvider):
 
         try:
             sf.write(tmp_path, samples, sample_rate)
+            transcribe_kwargs: dict[str, object] = {
+                "language": language,
+                "beam_size": self.settings.asr_beam_size,
+                "condition_on_previous_text": True,
+            }
+
+            if self.settings.dictionary_enabled:
+                bias = self._get_bias()
+                initial_prompt = bias.initial_prompt()
+                hotwords = bias.hotwords()
+                if initial_prompt:
+                    transcribe_kwargs["initial_prompt"] = initial_prompt
+                if hotwords:
+                    transcribe_kwargs["hotwords"] = ",".join(hotwords)
+
             segments, info = self._model.transcribe(
                 str(tmp_path),
-                language=language,
-                beam_size=self.settings.asr_beam_size,
-                condition_on_previous_text=True,
+                **transcribe_kwargs,
             )
 
             text_parts: list[str] = []

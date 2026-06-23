@@ -25,7 +25,7 @@ background `QThread`, while the main thread owns `QApplication` and the `QSystem
 2. On press it notifies `App`, which clears `AudioBuffer` and starts `AudioCapture`.
 3. While the key is held, `AudioCapture` streams microphone chunks into `AudioBuffer`.
 4. On release, `App` stops capture, runs VAD-based silence trimming, and sends the trimmed audio to `ASRProvider`.
-5. `FasterWhisperProvider` transcribes the audio (model is lazy-loaded on first use).
+5. `FasterWhisperProvider` transcribes the audio (model is lazy-loaded on first use). When `dictionary_enabled` is true, an `ASRBias` instance supplies an `initial_prompt` and `hotwords` derived from the active context mode and vocabulary to nudge recognition toward domain terms.
 6. `App` passes the raw transcript through a `TextCorrector` when `dictionary_enabled` is true. The corrector applies vocabulary replacements (longest-match, word-boundary aware, case-preserving) before post-processing.
 7. `App` passes the corrected transcript to a `PostProcessor`. The default implementation is a deterministic `TextFormatter`; when `llm_enabled` is true an `LLMPostProcessor` backed by an Ollama LLM is used instead.
 8. `App` passes the post-processed text to `TextInjector`.
@@ -70,6 +70,7 @@ Loguru configuration with console and rotating file sinks.
 - `storage.py` — `VocabularyStorage` loads and saves JSON vocabulary files (`static.json`, `user.json`, `context_*.json`).
 - `vocab_manager.py` — `VocabularyManager` merges static, context, and user dictionaries with override priority.
 - `corrector.py` — `TextCorrector` applies vocabulary replacements to raw transcripts using longest-match, word-boundary-aware, case-preserving replacement.
+- `bias.py` — `ASRBias` builds an `initial_prompt` and `hotwords` list from the active context and loaded vocabulary for Whisper ASR biasing.
 - `context_modes.py` — context-specific starter terms and LLM prompt fragments for `general`, `chat`, `email`, and `code` modes.
 
 ### `src/postprocess/`
@@ -117,8 +118,10 @@ Completed:
 - [x] Dictionary storage, context modes, and vocabulary manager (Phase 1 of v0.3).
 - [x] Text correction layer from dictionary (Phase 2 of v0.3).
 
+Completed:
+- [x] ASR biasing with dictionary terms (Phase 3 of v0.3).
+
 Planned:
-- [ ] ASR biasing with dictionary terms (Phase 3 of v0.3).
 - [ ] Adaptive vocabulary learning (Phase 4 of v0.3).
 - [ ] UI integration for dictionary and learning (Phase 5 of v0.3).
 - [ ] Streaming ASR and latency optimization (v0.4).
