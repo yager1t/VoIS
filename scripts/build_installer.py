@@ -27,7 +27,13 @@ INSTALLER_DIR = DIST_DIR / "installer"
 SPEC_FILE = PROJECT_ROOT / "installer" / "voice-to-cursor.spec"
 ISS_FILE = PROJECT_ROOT / "installer" / "voice-to-cursor.iss"
 ISCC = Path(r"C:\Program Files (x86)\Inno Setup 6\iscc.exe")
-ZIP_NAME = "Voice-to-Cursor-0.6.0-portable.zip"
+
+# Derive the version from the package so version strings live in one place.
+sys.path.insert(0, str(PROJECT_ROOT))
+import src
+
+VERSION = src.__version__
+ZIP_NAME = f"Voice-to-Cursor-{VERSION}-portable.zip"
 
 
 def run(cmd: list[str | Path], *, cwd: Path | None = None) -> None:
@@ -97,7 +103,7 @@ def build_inno_installer() -> Path | None:
     if not ISCC.exists():
         print("Inno Setup compiler not found; skipping .exe installer.")
         return None
-    run([str(ISCC), str(ISS_FILE)], cwd=PROJECT_ROOT)
+    run([str(ISCC), f"/DMyAppVersion={VERSION}", str(ISS_FILE)], cwd=PROJECT_ROOT)
     candidates = list(INSTALLER_DIR.glob("Voice-to-Cursor-*-Setup.exe"))
     return candidates[0] if candidates else None
 

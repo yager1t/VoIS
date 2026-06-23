@@ -1,6 +1,6 @@
 [project]
 name = "voice-to-cursor"
-version = "0.6.0"
+version = "0.6.1"
 description = "Local-first Windows dictation app with faster-whisper ASR, streaming transcription, vocabulary correction, and cursor text injection."
 requires-python = ">=3.11"
 license = { text = "MIT" }

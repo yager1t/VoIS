@@ -2,7 +2,7 @@
 ; Generated 2026-06-23
 
 #define MyAppName "Voice-to-Cursor"
-#define MyAppVersion "0.6.0"
+#define MyAppVersion "0.6.1"
 #define MyAppPublisher "Voice-to-Cursor Project"
 #define MyAppURL "https://github.com/yourusername/voice-to-cursor"
 #define MyAppExeName "voice-to-cursor.exe"
