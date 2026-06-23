@@ -58,12 +58,14 @@ Loguru configuration with console and rotating file sinks.
 ### `src/audio/`
 - `capture.py` — `AudioCapture` wraps `sounddevice.InputStream` with push-to-talk / toggle semantics.
 - `buffer.py` — `AudioBuffer` is a thread-safe accumulator with an optional `max_seconds` bound to prevent unbounded memory growth.
+- `streaming_buffer.py` — `StreamingAudioBuffer` is a thread-safe accumulator that tracks processed and unprocessed samples, supporting incremental streaming transcription.
 - `vad.py` — `VADProvider` interface and `WebRTCVADProvider` implementation using `webrtcvad`. Includes `split_on_silence` for trimming leading/trailing silence while keeping neighboring context frames.
 
 ### `src/asr/`
 - `base.py` — `ASRProvider` interface and `TranscriptionResult` dataclass.
 - `model_manager.py` — `ModelManager` resolves model paths and handles downloads. Model download and instantiation are wrapped in patchable functions (`_download_model`, `_create_whisper_model`) so unit tests can avoid importing heavy ML packages.
 - `whisper_provider.py` — `FasterWhisperProvider` transcribes audio via `faster-whisper`. The model is lazy-loaded.
+- `streaming.py` — `StreamingTranscriber` runs a background thread that consumes audio chunks from a `StreamingAudioBuffer`, runs VAD, and emits incremental `TranscriptionResult`s via a queue. Silence pauses mark partial results final, and remaining audio is flushed as a final result on stop.
 
 ### `src/hotkey/`
 - `base.py` — `HotkeyManager` interface and `parse_hotkey` helper.
@@ -132,6 +134,9 @@ Completed:
 Completed:
 - [x] UI integration for dictionary and learning (Phase 5 of v0.3).
 
+In progress:
+- [ ] Streaming audio buffer and streaming transcriber (Phase 1 of v0.4).
+
 Planned:
-- [ ] Streaming ASR and latency optimization (v0.4).
+- [ ] Streaming ASR and latency optimization (remaining v0.4 phases).
 - [ ] macOS and Linux support (v0.5).
